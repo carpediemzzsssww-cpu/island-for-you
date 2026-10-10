@@ -1,0 +1,46 @@
+# ── Dependencies and builds ──
+node_modules/
+node_modules.nosync/
+*.nosync/
+dist/
+dist-*/
+.vite/
+*.tsbuildinfo
+__pycache__/
+
+# ── Local configuration and secrets ──
+.env
+.env.*
+!.env.example
+.vercel/
+*.local
+
+# ── Output: test screenshots, packages, logs ──
+output/
+release/
+artifacts/
+*.zip
+*.log
+
+# ── Local sources: Blender files, font sources ──
+art-source/
+*.blend1
+
+# ── AI tools and local notes ──
+.claude/
+.codex/
+.agents/
+.playwright-cli/
+progress.md
+
+# ── Copy deck (scripts/copy-deck.mjs): generated locally for editing, with its key ──
+文案清单.md
+scripts/copy-deck.key.json
+
+# ── System and editors ──
+.DS_Store
+__MACOSX/
+.idea/
+.vscode/
+# iCloud duplicates such as "node_modules 2"
+node_modules*

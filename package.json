@@ -1,0 +1,36 @@
+{
+  "name": "island-for-you",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "models": "blender --background --python scripts/build_island.py",
+    "test": "node --import tsx --test tests/*.test.ts",
+    "photos": "python3 scripts/photos.py",
+    "music": "node scripts/render_music.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.3.0",
+    "@react-three/postprocessing": "^3.1.3",
+    "lucide-react": "^0.468.0",
+    "postprocessing": "^6.39.5",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "^0.180.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "@types/three": "^0.180.0",
+    "@vitejs/plugin-react": "^5.0.3",
+    "playwright": "^1.63.0",
+    "tsx": "^4.20.5",
+    "typescript": "~5.9.2",
+    "vite": "^7.1.7"
+  }
+}

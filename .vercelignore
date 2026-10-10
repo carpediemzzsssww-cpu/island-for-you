@@ -1,0 +1,17 @@
+# Upload only what the build needs; never local-only material (Blender and font sources, test output, the copy deck).
+node_modules
+node_modules.nosync
+*.nosync
+.git
+output
+art-source
+artifacts
+dist
+docs
+scripts
+tests
+*.md
+.claude
+.codex
+.env*
+.vercel
