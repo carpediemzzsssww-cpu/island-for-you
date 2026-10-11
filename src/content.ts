@@ -61,14 +61,14 @@ export const letter={isPreview:false,title:'To you',salutation:`亲爱的${site.
  '新的一岁，愿你常常被惦记，也常常有好吃的。'
 ],signature:site.from,date:''};
 export type TrackId='arrival'|'home'|'diner'|'sunrise'|'ending';
-// Music-box arrangements of public-domain melodies, rendered by scripts/render_music.mjs (no recordings).
+// The five original tracks retained at the user's request. Birthday music is synthesized separately.
 // `start` skips into a song (seconds).
 export const tracks:Record<TrackId,{src:string;title:string;artist:string;start?:number;volume:number}>={
- arrival:{src:'/music/minuet-in-g.mp3',title:'Minuet in G',artist:'Petzold · music box',volume:.85},
- home:{src:'/music/prelude-in-c.mp3',title:'Prelude in C',artist:'Bach · music box',volume:.9},
- diner:{src:'/music/twinkle.mp3',title:'Twinkle, Twinkle, Little Star',artist:'Traditional · music box',volume:.8},
- sunrise:{src:'/music/ode-to-joy.mp3',title:'Ode to Joy',artist:'Beethoven · music box',volume:.85},
- ending:{src:'/music/auld-lang-syne.mp3',title:'Auld Lang Syne',artist:'Traditional · music box',volume:.95}
+ arrival:{src:'/music/nice-to-meet-you.mp3',title:'Nice to Meet You',artist:'Imagine Dragons',start:12.5,volume:.85},
+ home:{src:'/music/call-it-what-you-want.mp3',title:'Call It What You Want',artist:'Taylor Swift',volume:.9},
+ diner:{src:'/music/down-bad.mp3',title:'Down Bad',artist:'Taylor Swift',volume:.8},
+ sunrise:{src:'/music/bad-liar.mp3',title:'Bad Liar',artist:'Imagine Dragons',volume:.85},
+ ending:{src:'/music/babylon.mp3',title:'Babylon',artist:'Taylor Swift',volume:.95}
 };
 // Records on Home's player, in order; the first is on the turntable.
 export const records:TrackId[]=['home','ending','diner','arrival','sunrise'];

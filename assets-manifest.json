@@ -1,12 +1,12 @@
 {
  "version": 2,
- "placeholder": true,
+ "placeholder": false,
  "photos": [
   {
    "id": "portrait-01",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-01.webp",
    "thumbnail": "/photos/portrait-01_thumb.webp"
@@ -14,8 +14,8 @@
   {
    "id": "portrait-02",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-02.webp",
    "thumbnail": "/photos/portrait-02_thumb.webp"
@@ -23,8 +23,8 @@
   {
    "id": "portrait-03",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-03.webp",
    "thumbnail": "/photos/portrait-03_thumb.webp"
@@ -32,8 +32,8 @@
   {
    "id": "portrait-04",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-04.webp",
    "thumbnail": "/photos/portrait-04_thumb.webp"
@@ -41,8 +41,8 @@
   {
    "id": "portrait-05",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-05.webp",
    "thumbnail": "/photos/portrait-05_thumb.webp"
@@ -50,8 +50,8 @@
   {
    "id": "portrait-06",
    "category": "portrait",
-   "width": 960,
-   "height": 1280,
+   "width": 1254,
+   "height": 1254,
    "caption": "我眼睛里的你。",
    "src": "/photos/portrait-06.webp",
    "thumbnail": "/photos/portrait-06_thumb.webp"
@@ -59,8 +59,8 @@
   {
    "id": "together-01",
    "category": "together",
-   "width": 1280,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "很普通的一天，也很好。",
    "src": "/photos/together-01.webp",
    "thumbnail": "/photos/together-01_thumb.webp"
@@ -68,8 +68,8 @@
   {
    "id": "together-02",
    "category": "together",
-   "width": 1280,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "很普通的一天，也很好。",
    "src": "/photos/together-02.webp",
    "thumbnail": "/photos/together-02_thumb.webp"
@@ -77,8 +77,8 @@
   {
    "id": "together-03",
    "category": "together",
-   "width": 1280,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "很普通的一天，也很好。",
    "src": "/photos/together-03.webp",
    "thumbnail": "/photos/together-03_thumb.webp"
@@ -86,8 +86,8 @@
   {
    "id": "together-04",
    "category": "together",
-   "width": 1280,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "很普通的一天，也很好。",
    "src": "/photos/together-04.webp",
    "thumbnail": "/photos/together-04_thumb.webp"
@@ -95,8 +95,8 @@
   {
    "id": "sunset-01",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-01.webp",
    "thumbnail": "/photos/sunset-01_thumb.webp"
@@ -104,8 +104,8 @@
   {
    "id": "sunset-02",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-02.webp",
    "thumbnail": "/photos/sunset-02_thumb.webp"
@@ -113,8 +113,8 @@
   {
    "id": "sunset-03",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-03.webp",
    "thumbnail": "/photos/sunset-03_thumb.webp"
@@ -122,8 +122,8 @@
   {
    "id": "sunset-04",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-04.webp",
    "thumbnail": "/photos/sunset-04_thumb.webp"
@@ -131,8 +131,8 @@
   {
    "id": "sunset-05",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-05.webp",
    "thumbnail": "/photos/sunset-05_thumb.webp"
@@ -140,8 +140,8 @@
   {
    "id": "sunset-06",
    "category": "sunset",
-   "width": 1440,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "把这一刻的天色留下来。",
    "src": "/photos/sunset-06.webp",
    "thumbnail": "/photos/sunset-06_thumb.webp"
@@ -149,8 +149,8 @@
   {
    "id": "food-01",
    "category": "food",
-   "width": 1200,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "下次还一起吃。",
    "src": "/photos/food-01.webp",
    "thumbnail": "/photos/food-01_thumb.webp"
@@ -158,8 +158,8 @@
   {
    "id": "food-02",
    "category": "food",
-   "width": 1200,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "下次还一起吃。",
    "src": "/photos/food-02.webp",
    "thumbnail": "/photos/food-02_thumb.webp"
@@ -167,8 +167,8 @@
   {
    "id": "food-03",
    "category": "food",
-   "width": 1200,
-   "height": 960,
+   "width": 1254,
+   "height": 1254,
    "caption": "下次还一起吃。",
    "src": "/photos/food-03.webp",
    "thumbnail": "/photos/food-03_thumb.webp"
@@ -176,8 +176,8 @@
   {
    "id": "flowers-01",
    "category": "flowers",
-   "width": 960,
-   "height": 1200,
+   "width": 1254,
+   "height": 1254,
    "caption": "花已经替我们说了一点。",
    "src": "/photos/flowers-01.webp",
    "thumbnail": "/photos/flowers-01_thumb.webp"
@@ -185,8 +185,8 @@
   {
    "id": "flowers-02",
    "category": "flowers",
-   "width": 960,
-   "height": 1200,
+   "width": 1254,
+   "height": 1254,
    "caption": "花已经替我们说了一点。",
    "src": "/photos/flowers-02.webp",
    "thumbnail": "/photos/flowers-02_thumb.webp"
@@ -194,8 +194,8 @@
   {
    "id": "journal-01",
    "category": "journal",
-   "width": 1000,
-   "height": 1250,
+   "width": 1254,
+   "height": 1254,
    "caption": "认真保存生活的人。",
    "src": "/photos/journal-01.webp",
    "thumbnail": "/photos/journal-01_thumb.webp"
@@ -203,8 +203,8 @@
   {
    "id": "street-01",
    "category": "street",
-   "width": 960,
-   "height": 1200,
+   "width": 1254,
+   "height": 1254,
    "caption": "沿着街道，慢慢走。",
    "src": "/photos/street-01.webp",
    "thumbnail": "/photos/street-01_thumb.webp"
@@ -212,12 +212,17 @@
   {
    "id": "daily-01",
    "category": "daily",
-   "width": 1080,
-   "height": 1080,
+   "width": 1254,
+   "height": 1254,
    "caption": "这些小事，都记得。",
    "src": "/photos/daily-01.webp",
    "thumbnail": "/photos/daily-01_thumb.webp"
   }
  ],
- "video": null
+ "video": null,
+ "artwork": {
+  "generator": "imagegen",
+  "style": "white-background-mouse-doodle",
+  "referenceImagesIncluded": false
+ }
 }

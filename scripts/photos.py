@@ -1,6 +1,7 @@
-"""The island's photographs: painted placeholders, or your own pictures.
+"""The island's pictures: generated artwork, painted placeholders, or your own pictures.
 
-  python3 scripts/photos.py placeholders          paint the placeholder set (what the public demo shows)
+  python3 scripts/photos.py artworks path/to/folder import generated artwork (same category folders)
+  python3 scripts/photos.py placeholders          paint the optional placeholder set
   python3 scripts/photos.py import path/to/folder  use your own pictures
 
 For `import`, sort the pictures into one folder per category (any you leave out are simply not used):
@@ -36,8 +37,10 @@ def save(im, name):
             'caption': CAPTIONS[name.rsplit('-', 1)[0]], 'src': f'/photos/{name}.webp', 'thumbnail': f'/photos/{name}_thumb.webp'}
 
 
-def write_manifest(photos, video, placeholder):
+def write_manifest(photos, video, placeholder, artwork=False):
     manifest = {'version': 2, 'placeholder': placeholder, 'photos': photos, 'video': video}
+    if artwork:
+        manifest['artwork'] = {'generator': 'imagegen', 'style': 'white-background-mouse-doodle', 'referenceImagesIncluded': False}
     (ROOT / 'assets-manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=1) + '\n')
     size = sum(p.stat().st_size for p in DEST.iterdir()) / 1024 ** 2
     print(f'{len(photos)} photos{" and a video" if video else ""} in public/photos ({size:.1f} MB); assets-manifest.json updated.')
@@ -59,9 +62,14 @@ def load(path):
     return ImageOps.exif_transpose(Image.open(path)).convert('RGB')
 
 
-def import_folder(source):
+def import_folder(source, artwork=False):
     source = Path(source).expanduser()
     if not source.is_dir(): sys.exit(f'Not a folder: {source}')
+    # Validate the input before replacing the current gallery.
+    extensions = {'.jpg', '.jpeg', '.png', '.webp', '.heic'}
+    for required in ('portrait', 'sunset'):
+        if not any(p.suffix.lower() in extensions for p in (source / required).glob('*')):
+            sys.exit(f'Add at least one picture to {required}/.')
     fresh_dest(); photos = []
     for category in ORDER:
         files = sorted(p for p in (source / category).glob('*') if p.suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.heic'}) if (source / category).is_dir() else []
@@ -69,14 +77,14 @@ def import_folder(source):
     if not any(p['category'] == 'portrait' for p in photos): sys.exit('Add at least one picture to portrait/.')
     if not any(p['category'] == 'sunset' for p in photos): sys.exit('Add at least one picture to sunset/.')
     video = None
-    clip = next((p for p in source.glob('*') if p.suffix.lower() in {'.mp4', '.mov', '.m4v'}), None)
+    clip = None if artwork else next((p for p in source.glob('*') if p.suffix.lower() in {'.mp4', '.mov', '.m4v'}), None)
     if clip:
         # Re-encoded without metadata (no location or device tags), at most 1280 px wide.
         subprocess.run(['ffmpeg', '-v', 'error', '-y', '-i', str(clip), '-map_metadata', '-1', '-vf', "scale='min(1280,iw)':-2",
                         '-c:v', 'libx264', '-crf', '24', '-preset', 'slow', '-c:a', 'aac', '-b:a', '128k', '-movflags', '+faststart',
                         str(DEST / 'video.mp4')], check=True)
         video = {'src': '/photos/video.mp4', 'caption': '一小段时间。'}
-    write_manifest(photos, video, False)
+    write_manifest(photos, video, False, artwork)
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -286,4 +294,5 @@ def placeholders():
 if __name__ == '__main__':
     if len(sys.argv) >= 2 and sys.argv[1] == 'placeholders': placeholders()
     elif len(sys.argv) >= 3 and sys.argv[1] == 'import': import_folder(sys.argv[2])
+    elif len(sys.argv) >= 3 and sys.argv[1] == 'artworks': import_folder(sys.argv[2], artwork=True)
     else: sys.exit(__doc__)
