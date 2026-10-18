@@ -219,7 +219,7 @@ function Cameras(){
   if(place==='diner'&&useIsland.getState().closeUp&&!object){scripted=true;eye=mobile?[5.6,3.9,7.6]:[4.75,2.62,5.45];target=[3.65,1.86,3.98];}
   if(place==='sunset'){const st=useIsland.getState();if(st.sandPhase>0){scripted=true;eye=mobile?[-7,6.8,13.8]:[-7,6.2,12.8];target=[-7,1,8.95];}else if(st.sitting){scripted=true;eye=[-6.4,2.08,7.86];target=[-13.2,2.4,13.6];}}
   // Sunrise hill: the walk up is scripted below; at the top the camera turns east, where the sun will rise.
-  if(place==='sunrise'){if(step===0){eye=[-4.3,5.0,-2.4];target=[-1.0,2.6,-7.0];scripted=true;}else if(step>=3){eye=SUMMIT[0];target=SUMMIT[1];scripted=true;}}
+  if(place==='sunrise'){if(step===0){eye=[-6.4,6.5,-12.5];target=[0,3.6,-8.5];scripted=true;}else if(step>=3){eye=SUMMIT[0];target=SUMMIT[1];scripted=true;}}
   if(object&&object!=='camera'&&object!=='settings'){
    if(place==='home'){eye=[8,5.8,.4];target=[6.9,2.0,-4.35];}
    if(object==='bouquet'){eye=[-6.8,4.4,8];target=[-4.3,1.9,3.6];}

@@ -11,7 +11,7 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "photos": "python3 scripts/photos.py",
     "music": "node scripts/render_music.mjs",
-    "build:minitool": "node scripts/minitool/models.mjs && vite build --config vite.minitool.config.ts && node scripts/minitool/package.mjs"
+    "build:minitool": "node scripts/minitool/models.mjs && node --import tsx scripts/minitool/flowers.mjs && vite build --config vite.minitool.config.ts && node scripts/minitool/package.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

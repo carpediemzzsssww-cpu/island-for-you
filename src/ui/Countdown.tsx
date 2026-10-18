@@ -4,7 +4,7 @@ import {useIsland} from '../store';
 import {moment,catchMoment} from '../world/Moments';
 
 const LABEL={sunset:'太阳慢慢入海',sunrise:'等第一缕光',rain:'听雨，等天晴'} as const;
-const CALL={greenFlash:'绿光！点一下',firstLight:'第一缕光！点一下',rainbow:'彩虹！点一下'} as const;
+const CALL={greenFlash:'凡尔纳《绿光》',firstLight:'第一缕光！点一下',rainbow:'彩虹！点一下'} as const;
 /** A small moving seaside illustration shares the actual sky/weather clock. */
 export default function Countdown(){
  const reduced=useIsland(s=>s.save.settings.reducedMotion);

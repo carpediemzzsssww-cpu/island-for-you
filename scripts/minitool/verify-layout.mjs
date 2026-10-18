@@ -1,7 +1,7 @@
 import {chromium} from 'playwright';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
-const out='output/minitool-layout-v101';await fs.mkdir(out,{recursive:true});
+const out='output/minitool-layout-v102';await fs.mkdir(out,{recursive:true});
 const browser=await chromium.launch({channel:'chrome',headless:true});const errors=[],records=[];let page;
 const tap=(name)=>page.getByRole('button',{name,exact:true}).tap();
 const state=async(fn,arg)=>page.evaluate(({code,arg})=>Function('s','arg',code)(window.__island.store.getState(),arg),{code:fn,arg});
@@ -35,7 +35,7 @@ try{
   await travel('cloud');await check(prefix+'-library-outside');await tap('进图书馆坐坐');await state('s.nextRecord()');await page.waitForTimeout(700);await check(prefix+'-library-inside',{shot:true});await tap('窗边有一本《绿光》');await tap('轻轻放回去');await tap('在这里待一会儿');await page.waitForTimeout(600);await check(prefix+'-rain',{shot:true});
   await travel('sunset');await page.waitForTimeout(700);await check(prefix+'-sunset',{shot:true});if(await page.getByRole('button',{name:'更多操作',exact:true}).isVisible())await tap('更多操作');await check(prefix+'-sunset-more');
   if(width===390){
-   await page.getByRole('button',{name:'绿光！点一下',exact:true}).waitFor({timeout:30000});await check(prefix+'-green-call',{shot:true});await tap('绿光！点一下');await check(prefix+'-green-caught');
+   await page.locator('.countdown.said').filter({hasText:'凡尔纳《绿光》'}).waitFor({timeout:30000});await check(prefix+'-green-attribution',{shot:true});assert.equal(await state('return s.save.secret.greenFlash'),true);
   }
   await travel('sunrise');await check(prefix+'-dawn-start');await tap('沿着山路出发');await check(prefix+'-dawn-path');
   await travel('celebration');await page.getByLabel('想庆祝什么？').fill('今天完成了一件一直想做的小事');await check(prefix+'-celebration',{shot:true});

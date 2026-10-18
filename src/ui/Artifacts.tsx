@@ -99,7 +99,7 @@ export function SceneActions(){const s=useIsland();const [more,setMore]=useState
  {list.length>2&&<button className="scene-more-toggle" aria-label={more?'收起其他操作':'更多操作'} aria-expanded={more} onClick={()=>setMore(!more)}><MoreHorizontal size={18}/></button>}
  {s.place==='diner'&&s.save.optional.foodMemories.length>0&&<button onClick={()=>s.setCloseUp(!s.closeUp)}>{s.closeUp?'看看食堂':'看看餐桌'}</button>}
  {s.place==='cloud'&&<>{s.cloudView==='inside'&&<button onClick={()=>s.setCloudView('outside')}>走到屋外</button>}{s.weather==='clear'&&<button onClick={()=>s.setWeather('rain')}>在这里待一会儿</button>}</>}
- {['home','park','diner','sunset','town','sunrise','cloud','celebration'].includes(s.place)&&<button className="scene-camera" aria-label="拿起相机" title="拍张照" onClick={()=>s.open('camera')}><Camera size={18}/><span>拍张照</span></button>}</div>
+ {['home','park','diner','sunset','town','sunrise','cloud'].includes(s.place)&&<button className="scene-camera" aria-label="拿起相机" title="拍张照" onClick={()=>s.open('camera')}><Camera size={18}/><span>拍张照</span></button>}</div>
  {s.place==='sunrise'&&<SunriseCard/>}{s.place==='celebration'&&<CelebrationCard/>}
  {s.place==='sunset'&&(s.sandPhase===1?<div className="narrative-card compact-card"><h3>字留在沙滩上了。</h3><button className="ink-button" onClick={()=>{wave();s.setSand(2);}}>让这阵海浪带走 <ArrowRight size={16}/></button><button className="quiet-link" onClick={()=>{s.setSand(0);s.open('sand');}}>再写一次</button></div>
  :s.sandPhase===2?<p className="scene-whisper" role="status">海浪来了，把字轻轻收走。</p>

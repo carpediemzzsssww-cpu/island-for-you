@@ -10,7 +10,7 @@ import {chime,gullCall,sparkleSound,thunder} from '../lib/audio';
 // Waiting is part of three places: the sunset coast, the sunrise hill and the rain at the library. Each wait has a
 // countdown (the pill in src/ui/Countdown.tsx reads `moment`), a few things that happen on the way, and one moment at
 // the end that she can catch with a tap: the green flash as the sun goes into the sea, the first ray of the morning,
-// a rainbow after the rain. Catching it is written in the journal; missing it costs nothing.
+// a rainbow after the rain. The green flash is recorded on observation, without a timed tap.
 
 export type Catch='greenFlash'|'firstLight'|'rainbow';
 export const moment={kind:null as null|'sunset'|'sunrise'|'rain',remaining:0,progress:0,call:null as null|Catch,callUntil:0,said:'',saidUntil:0};
@@ -20,7 +20,7 @@ const say=(text:string,ms=3800)=>{moment.said=text;moment.saidUntil=performance.
 /** A tap anywhere on the world while a moment is open catches it. Called by the world's tap handler. */
 export function catchMoment(){const c=moment.call;if(!c||performance.now()>moment.callUntil)return false;moment.call=null;
  const s=useIsland.getState();s.dispatch({type:'surprise',id:c});sparkleSound();chime();burst.at=performance.now();burst.kind=c;
- say({greenFlash:'接住了，凡尔纳写过的那一秒绿色。',firstLight:'接住了，今天的第一缕光。',rainbow:'彩虹被你看见了。'}[c],4500);return true;}
+ say({greenFlash:'凡尔纳《绿光》',firstLight:'今天的第一缕光。',rainbow:'彩虹被你看见了。'}[c],4500);return true;}
 const burst={at:0,kind:null as Catch|null};
 function glowTexture(inner:string,outer:string){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d')!;const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,inner);r.addColorStop(.35,outer);r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 // A flat band; the colour runs across it from red (outside) to violet (inside), and it fades toward both feet.
@@ -38,14 +38,14 @@ export default function Moments(){
  useEffect(()=>()=>{green.dispose();gold.dispose();arc.dispose();arcMat.dispose();},[green,gold,arc,arcMat]);
  const weather=useIsland(s=>s.weather);const place=useIsland(s=>s.place);const flockStart=useRef(-1e9),flash=useRef(-1e9);
  useEffect(()=>{if(weather==='rain'){rainSince=performance.now();fired.delete('thunder');fired.delete('rainbow');}},[weather]);
- useEffect(()=>{const glowing=useIsland.getState().weather==='glow';if(!glowing){fired.clear();moment.call=null;moment.said='';moment.saidUntil=0;}},[place]);
+ useEffect(()=>{const glowing=useIsland.getState().weather==='glow';if(!glowing){fired.clear();burst.kind=null;burst.at=0;moment.call=null;moment.said='';moment.saidUntil=0;}},[place]);
  const dir=useMemo(()=>new THREE.Vector3(),[]),rainbowAnchor=useMemo(()=>new THREE.Vector3(),[]);
  useFrame((_,dt)=>{const s=useIsland.getState(),now=performance.now(),reduced=s.save.settings.reducedMotion;moment.kind=null;
   // Sunset: the countdown runs on the same clock as the sky (faster while she sits on the bench).
   if(s.place==='sunset'&&s.weather==='clear'&&!s.object){const rate=reduced?6:(s.sitting?1.5:1)*SUNSET_RATE,p=sunsetClock.progress;moment.kind='sunset';moment.remaining=Math.max(0,(SUNSET_TOUCH-p)/rate);moment.progress=Math.min(1,p/SUNSET_TOUCH);
    if(p>17&&!fired.has('birds')){fired.add('birds');flockStart.current=now;gullCall();}
    if(p>38&&!fired.has('path')){fired.add('path');dir.copy(atmosphere.sunDir).setY(0).normalize();for(let i=0;i<5;i++)setTimeout(()=>poke('glint',camera.position.clone().addScaledVector(dir,9+i*3.5).setY(-.02).add(new THREE.Vector3((Math.random()-.5)*1.5,0,(Math.random()-.5)*1.5))),i*260);}
-   if(p>=SUNSET_TOUCH&&!fired.has('touch')){fired.add('touch');moment.call='greenFlash';moment.callUntil=now+WINDOW;}}
+   if(p>=SUNSET_TOUCH&&!fired.has('touch')){fired.add('touch');s.dispatch({type:'surprise',id:'greenFlash'});burst.at=now;burst.kind='greenFlash';say('凡尔纳《绿光》',4500);}}
   // Sunrise: fourteen seconds of dawn once she is at the top.
   else if(s.place==='sunrise'&&s.sunriseStep>=3){const d=sunriseDawn();moment.kind='sunrise';moment.remaining=(1-d)*(reduced?2:DAWN);moment.progress=d;
    if(d>.3&&!fired.has('birds')){fired.add('birds');flockStart.current=now;gullCall();}
@@ -56,9 +56,9 @@ export default function Moments(){
    if(s.weather==='glow'&&!fired.has('rainbow')){fired.add('rainbow');moment.call='rainbow';moment.callUntil=now+WINDOW+1800;}}
   if(moment.call&&now>moment.callUntil){const missed=moment.call;moment.call=null;say({greenFlash:'绿光一闪就没了。',firstLight:'光已经铺满海面了。',rainbow:'彩虹还在，可以慢慢看。'}[missed],3000);}
   // The sun's own sprite: the green flash on the horizon, or the first gold of the morning.
-  const sp=sun.current;if(sp){const call=moment.call,sinceBurst=(now-burst.at)/1000;const showing=call==='greenFlash'||call==='firstLight'||sinceBurst<1.2&&(burst.kind==='greenFlash'||burst.kind==='firstLight');
+  const sp=sun.current;if(sp){const call=moment.call,sinceBurst=(now-burst.at)/1000;const showing=call==='greenFlash'||call==='firstLight'||sinceBurst<(burst.kind==='greenFlash'?2.8:1.2)&&(burst.kind==='greenFlash'||burst.kind==='firstLight');
    sp.visible=showing;if(showing){dir.copy(atmosphere.sunDir);dir.y=Math.max(dir.y,.004);dir.normalize();sp.position.copy(camera.position).addScaledVector(dir,360);
-    const isGreen=(call??burst.kind)==='greenFlash';const m=sp.material as THREE.SpriteMaterial;m.map=isGreen?green:gold;m.blending=isGreen?THREE.NormalBlending:THREE.AdditiveBlending;const pulse=.75+.25*Math.sin(now/120);const pop=sinceBurst<1.2?1+(1.2-sinceBurst)*1.5:1;sp.scale.setScalar((isGreen?16:34)*pulse*pop);m.opacity=Math.min(1,showing?.95:0);}}
+    const isGreen=(call??burst.kind)==='greenFlash';const m=sp.material as THREE.SpriteMaterial;m.map=isGreen?green:gold;m.blending=isGreen?THREE.NormalBlending:THREE.AdditiveBlending;const pulse=.75+.25*Math.sin(now/120);const pop=!isGreen&&sinceBurst<1.2?1+(1.2-sinceBurst)*1.5:1;sp.scale.setScalar((isGreen?16:34)*pulse*pop);m.opacity=Math.min(1,showing?.95:0);}}
   // A flock crossing the sky toward the sun.
   const f=flock.current;if(f){const k=(now-flockStart.current)/1000/9;f.visible=k>0&&k<1;if(f.visible){dir.copy(atmosphere.sunDir).setY(0).normalize();const side=new THREE.Vector3(-dir.z,0,dir.x);
    f.position.copy(camera.position).addScaledVector(dir,55).addScaledVector(side,(k-.5)*70);f.position.y=camera.position.y+9+Math.sin(k*Math.PI)*3;f.lookAt(f.position.clone().add(side));

@@ -96,8 +96,8 @@ export function cosmosHead(color='#f0a7bd'){
  return merge(parts);
 }
 /** Hydrangea: a dome of small four-petalled florets in blues and lilacs. */
-export function hydrangeaHead(color='#a9bfdc'){
- const parts:Geo[]=[];const palette=[C(color),C('#c3b2dc'),C('#cfdcee'),C('#9db3d4'),C('#b9c9e6')];const N=64;
+export function hydrangeaHead(color='#a9bfdc',florets=64){
+ const parts:Geo[]=[];const palette=[C(color),C('#c3b2dc'),C('#cfdcee'),C('#9db3d4'),C('#b9c9e6')];const N=florets;
  for(let i=0;i<N;i++){const t=(i+.5)/N,pol=Math.acos(1-t*1.2)*.92,az=i*2.39996;const n=new THREE.Vector3(Math.sin(pol)*Math.cos(az),Math.cos(pol),Math.sin(pol)*Math.sin(az));
   const col=palette[i%5].clone().multiplyScalar(.94+((i*37)%7)/60);const floret:Geo[]=[];
   for(let k=0;k<4;k++)floret.push(place(petal({len:.0105,wid:.0085,cup:.22,curl:-.04,round:.75,widest:.6,segU:4,segV:4},col.clone().lerp(C('#f2f0f6'),.25),col,.06),k*Math.PI/2+i*.7,1.38,.0012));
@@ -121,12 +121,12 @@ export function bougainvilleaHead(color='#d64f8f'){
  return merge(parts);
 }
 /** Gypsophila: a spray of tiny white florets on fine, branching stems. */
-export function gypsophilaHead(){
+export function gypsophilaHead(floretsPerTwig=5){
  const parts:Geo[]=[];const stem=C('#7d9a64'),white=C('#fbfbf6'),cream=C('#f0ede2');let seed=3;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
  const twig=(a:THREE.Vector3,b:THREE.Vector3,r:number)=>{const d=b.clone().sub(a);const g=new THREE.CylinderGeometry(r*.8,r,d.length(),4);g.translate(0,d.length()/2,0);q.setFromUnitVectors(Y,d.clone().normalize());g.applyQuaternion(q);g.translate(a.x,a.y,a.z);return clean(g,stem);};
  for(let b=0;b<6;b++){const a=b*1.05+rnd()*.3,len=.03+rnd()*.015,tip=new THREE.Vector3(Math.cos(a)*len*.7,len,Math.sin(a)*len*.7);parts.push(twig(new THREE.Vector3(),tip,.0011));
   for(let k=0;k<4;k++){const a2=a+(rnd()-.5)*1.6,l2=.012+rnd()*.01,end=tip.clone().add(new THREE.Vector3(Math.cos(a2)*l2*.8,l2*.8,Math.sin(a2)*l2*.8));parts.push(twig(tip,end,.0007));
-   for(let f=0;f<5;f++){const o=new THREE.Vector3((rnd()-.5)*.009,(rnd()-.3)*.007,(rnd()-.5)*.009);parts.push(ball(.0022+rnd()*.0012,f%3?white:cream,1,1,1,6,4).translate(end.x+o.x,end.y+o.y,end.z+o.z));}}}
+   for(let f=0;f<floretsPerTwig;f++){const o=new THREE.Vector3((rnd()-.5)*.009,(rnd()-.3)*.007,(rnd()-.5)*.009);parts.push(ball(.0022+rnd()*.0012,f%3?white:cream,1,1,1,6,4).translate(end.x+o.x,end.y+o.y,end.z+o.z));}}}
  return merge(parts);
 }
 /** Eucalyptus: pairs of round, silvery leaves along a twig, smaller toward the tip. */
@@ -141,7 +141,11 @@ export function eucalyptusHead(){
 const HEADS:Record<string,()=>Geo>={tulip:()=>tulipHead(),rose:()=>roseHead(),daisy:daisyHead,hydrangea:()=>hydrangeaHead(),cosmos:()=>cosmosHead(),frangipani:frangipaniHead,bougainvillea:()=>bougainvilleaHead(),gypsophila:gypsophilaHead,eucalyptus:eucalyptusHead};
 const headCache=new Map<string,Geo>();
 /** Shared head geometry per flower type (never disposed; there are only nine). */
-export function headGeometry(type:string){if(!headCache.has(type))headCache.set(type,(HEADS[type]??HEADS.tulip)());return headCache.get(type)!;}
+export function headGeometry(type:string){if(!headCache.has(type)){
+ const baked=typeof window!=='undefined'?(window as unknown as {ISLAND_FLOWERS?:Record<string,{p:number[];c:number[];n:number[];i:number[]}>}).ISLAND_FLOWERS?.[type]:null;
+ if(baked){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(baked.p.map(v=>v/100000),3));g.setAttribute('color',new THREE.Float32BufferAttribute(baked.c.map(v=>v/255),3));g.setAttribute('normal',new THREE.Float32BufferAttribute(baked.n.map(v=>v/32767),3));g.setIndex(baked.i);headCache.set(type,g);}
+ else headCache.set(type,(HEADS[type]??HEADS.tulip)());
+ }return headCache.get(type)!;}
 
 /** Where each stem goes: a domed spiral of heads, stems gathered at the binding point (origin) and splayed below. */
 /** Flower heads are drawn at life size times this, so a hand-tied bouquet reads from a distance. */
