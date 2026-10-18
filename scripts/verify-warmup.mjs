@@ -1,0 +1,7 @@
+import {chromium} from 'playwright';import assert from 'node:assert/strict';import fs from 'node:fs/promises';
+const b=await chromium.launch({channel:'chrome',headless:true}),results=[];
+try{for(const [edition,url] of [['public','http://127.0.0.1:5196/?perf'],['private','http://127.0.0.1:5197/?perf'],['minitool','http://127.0.0.1:5195/nested/app/?perf']]){
+ const page=await b.newPage({viewport:{width:390,height:844}}),errors=[];page.on('pageerror',e=>errors.push(e.stack||e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await page.goto(url);await page.waitForFunction(()=>window.__island);await page.evaluate(()=>{const s=window.__island.store.getState();s.start();s.finishIntro();s.setting('muted',true)});
+ for(let i=0;i<38;i++){await page.evaluate(i=>{const s=window.__island.store.getState();s.travel(['home','park','diner','sunset','cloud',null][i%6]);if(i%6===2){s.dispatch({type:'food',id:'chicken'});s.setCloseUp(true)}},i);await page.waitForTimeout(150)}
+ await page.waitForTimeout(1200);const state=await page.evaluate(()=>JSON.parse(window.render_game_to_text()));assert.deepEqual(errors,[],edition);assert.ok(state.drawCalls>0);results.push({edition,transitions:38,errors,drawCalls:state.drawCalls});await page.close();
+}await fs.mkdir('output/warmup-v101',{recursive:true});await fs.writeFile('output/warmup-v101/results.json',JSON.stringify({status:'PASS',results},null,2));console.log('PASS rapid scene switching across all editions')}finally{await b.close()}

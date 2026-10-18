@@ -215,10 +215,13 @@ export function installLayoutVars(opts: { nav?: number; minTop?: number } = {}):
     s.setProperty('--mt-top', Math.max(minTop, top + nav) + 'px')
     // 页面不可见时量到的高度是 0：这时不写，让 CSS 退回 100vh，等可见了再量
     const height = Math.round(vv ? vv.height : window.innerHeight)
+    document.documentElement.dataset.keyboard = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '') && height < window.innerHeight - 100 ? 'true' : 'false'
     if (height > 0) s.setProperty('--app-height', height + 'px')
     else s.removeProperty('--app-height')
   }
   update()
+  document.addEventListener('focusin', update)
+  document.addEventListener('focusout', () => setTimeout(update, 0))
   window.addEventListener('resize', update)
   window.addEventListener('orientationchange', update)
   document.addEventListener('visibilitychange', update)

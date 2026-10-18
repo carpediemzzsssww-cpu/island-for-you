@@ -1,0 +1,78 @@
+/* Header, scene navigation and the bottom dock each own a row. No independently
+   positioned pills: wrapping and native safe areas must not create overlaps. */
+.island-app{--hud-top:30px;--hud-bottom:20px;--hud-side:24px;--hud-nav:100px}
+.island-app .topbar{top:var(--hud-top)}
+.scene-navigation{position:absolute;top:var(--hud-nav);left:var(--hud-side);right:var(--hud-side);display:flex;align-items:flex-start;justify-content:space-between;pointer-events:none;z-index:61}
+.island-app .scene-navigation .place-heading{position:static;max-width:none;flex-shrink:0}
+.island-app .scene-navigation .countdown{position:static;top:auto;left:auto;right:auto;transform:none;animation:none;margin:0 0 0 auto;max-width:calc(100% - 120px);pointer-events:auto;min-height:44px}
+.island-app .scene-navigation .countdown.waiting{display:flex;align-items:center;padding:4px 12px 4px 5px}
+.scene-navigation .countdown.waiting svg{width:58px;height:38px;flex-shrink:0}
+.scene-navigation .countdown.waiting>div{min-width:0}
+.scene-navigation .countdown span{white-space:normal;line-height:1.5}
+.scene-navigation .countdown.waiting span{font-size:12px}
+.scene-navigation .countdown.waiting small{font-size:10px}
+.scene-navigation .countdown.calling,.scene-navigation .countdown.said{padding:8px 12px;font-size:12px}
+.scene-navigation .countdown svg{flex-shrink:0}
+.scene-dock{position:absolute;left:16px;right:16px;bottom:var(--hud-bottom);z-index:35;max-height:calc(var(--app-height,100vh) - var(--hud-nav) - var(--hud-bottom) - 68px);display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.scene-dock.inactive{display:none}
+.scene-dock> *{flex-shrink:0;max-width:100%}
+.scene-dock>.now-playing{position:static;display:none;order:0;transform:none;white-space:normal;text-align:center;max-width:100%;margin:0 0 8px;line-height:1.5}
+.scene-dock>.now-playing.show{display:block}
+.island-app .scene-dock>.narrative-card{position:static;transform:none;order:1;margin:0 0 8px;width:100%;max-width:420px;padding:15px 18px;max-height:calc(var(--app-height,100vh) - var(--hud-nav) - var(--hud-bottom) - 130px);overflow:auto;pointer-events:auto;animation:none;flex-shrink:1;min-height:44px}
+.scene-dock>.scene-whisper{position:static;transform:none;order:1;margin:0 0 8px;white-space:normal;text-align:center;max-width:100%;pointer-events:auto}
+.island-app .scene-dock>.scene-actions{position:static;transform:none;order:2;margin:0;max-width:100%;justify-content:center;pointer-events:auto}
+.scene-dock>.rainbow-overview{position:static;transform:none;order:2;margin:0;pointer-events:auto}
+.scene-dock>.toast{position:static;transform:none;order:-1;margin:0 0 8px;white-space:normal;text-align:center;max-width:100%;pointer-events:none}
+.scene-dock .birthday-title{position:fixed}
+.scene-dock .quiet-link{min-height:44px}
+.mini-tool .island-app{--hud-top:var(--mt-top,68px);--hud-bottom:calc(var(--mt-safe-bottom,0px) + 16px);--hud-nav:calc(var(--mt-top,68px) + 64px);--hud-side:18px}
+.mini-tool .tools button{width:44px;height:44px}
+@media(max-width:760px){
+ .island-app{--hud-top:24px;--hud-nav:94px;--hud-side:16px;--hud-bottom:20px}
+ .scene-navigation .countdown.waiting svg{width:48px}
+ .island-app .scene-navigation .countdown.waiting{padding:4px 9px 4px 3px}
+ .scene-navigation .countdown.waiting span{font-size:11px;letter-spacing:0}
+ .scene-navigation .countdown{border-radius:22px}
+ .scene-dock>.scene-actions{gap:7px}
+ .scene-dock .scene-actions>button{min-height:44px}
+ .scene-dock .scene-camera span{display:none}
+}
+@media(max-width:360px){
+ .island-app .scene-navigation .countdown{max-width:calc(100% - 112px)}
+ .scene-navigation .countdown.waiting svg{width:34px;height:34px}
+ .scene-navigation .countdown.waiting span{font-size:10px}
+ .scene-dock .scene-actions>button{padding-left:10px;padding-right:10px}
+}
+@media(max-height:500px) and (min-width:500px){
+ .island-app{--hud-top:18px;--hud-nav:82px;--hud-bottom:12px}
+ .scene-dock{left:auto;right:16px;width:320px}
+ .island-app .scene-dock>.narrative-card{max-height:calc(var(--app-height,100vh) - var(--hud-top) - var(--hud-bottom) - 100px);font-size:12px;padding:10px 15px}
+ .scene-dock>.now-playing{font-size:10px;padding:4px 10px}
+ .scene-dock .narrative-card h3{font-size:18px}
+ .scene-dock .narrative-card p{margin:4px 0}
+ .scene-dock .narrative-card .ink-button{margin-top:6px}
+ .mini-tool .island-app{--hud-nav:calc(var(--mt-top,68px) + 56px);--hud-bottom:calc(var(--mt-safe-bottom,0px) + 8px)}
+ .mini-tool .scene-navigation{right:auto;width:116px}
+ .mini-tool .island-app .scene-navigation .countdown{position:absolute;top:54px;left:0;max-width:146px;width:146px}
+}
+
+.scene-dock>.island-hint,.scene-dock>.walk-entry{position:static;transform:none;order:2;margin:8px 0 0;text-align:center}
+.scene-dock>.walk-entry{pointer-events:auto}
+@media(max-height:500px) and (min-width:500px){.scene-dock{max-height:calc(var(--app-height,100vh) - var(--hud-top) - var(--hud-bottom) - 60px)}.scene-dock>.now-playing.show{display:none}}
+
+@supports(padding:env(safe-area-inset-bottom)){@media(max-width:760px){.island-app{--hud-bottom:calc(env(safe-area-inset-bottom,0px) + 20px)}}}
+
+/* Short landscape screens keep the primary celebration action in view. */
+@media(max-height:500px) and (min-width:500px){
+ .at-celebration .scene-dock{width:calc(100% - 180px);max-width:440px;flex-direction:row;align-items:flex-end}
+ .island-app.at-celebration .scene-dock>.narrative-card{flex:1;min-width:0;margin:0;padding:8px 12px;max-height:calc(var(--app-height,100vh) - var(--hud-top) - var(--hud-bottom) - 60px)}
+ .at-celebration .scene-dock>.scene-actions{width:44px;flex:none;margin-left:8px;padding:0;background:none!important}
+ .at-celebration .scene-dock .scene-camera{width:44px;height:44px;min-height:44px;padding:0;justify-content:center}
+ .at-celebration .scene-dock .scene-camera span{display:none}
+ .at-celebration .scene-dock h3{font-size:16px;line-height:22px;margin:0}
+ .at-celebration .scene-dock .occasion-field{font-size:11px;line-height:16px;margin:4px 0;gap:0}
+ .at-celebration .scene-dock .occasion-field input{padding:6px 10px}
+ .at-celebration .scene-dock .ink-button{margin-top:6px;padding:8px 12px}
+}
+.mini-tool .scene-dock .birthday-title{top:calc(var(--mt-top,68px) + 130px)}
+@media(max-height:500px) and (min-width:500px){.mini-tool .scene-dock .birthday-title{top:calc(var(--mt-top,68px) + 64px)}}

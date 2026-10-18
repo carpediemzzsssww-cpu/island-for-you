@@ -216,7 +216,7 @@ function Cameras(){
   // The birthday evening: wide while the lamps light, close on the cake, then out to sea for the fireworks.
   if(place==='celebration'){const party=useIsland.getState().party;scripted=party>=2;if(party>=2&&party<=3){eye=mobile?[.3,2.95,8.4]:[.25,2.7,7.7];target=[0,1.98,5.35];}else if(party===4){eye=mobile?[.55,2.8,7.7]:[.5,2.55,7.0];target=[0,2.0,5.35];}else if(party===5&&fireworks){eye=mobile?[.5,2.5,13.8]:[.7,2.55,11.8];target=mobile?[0,5.9,-1]:[0,5.4,-1];}else if(party===5){eye=mobile?[.8,2.9,9.4]:[.7,2.55,8.5];target=[0,1.95,5.4];}}
   // After ordering, the camera sits down at the table.
-  if(place==='diner'&&useIsland.getState().closeUp&&!object){scripted=true;eye=mobile?[5.05,2.95,6.0]:[4.75,2.62,5.45];target=[3.65,1.86,3.98];}
+  if(place==='diner'&&useIsland.getState().closeUp&&!object){scripted=true;eye=mobile?[5.6,3.9,7.6]:[4.75,2.62,5.45];target=[3.65,1.86,3.98];}
   if(place==='sunset'){const st=useIsland.getState();if(st.sandPhase>0){scripted=true;eye=mobile?[-7,6.8,13.8]:[-7,6.2,12.8];target=[-7,1,8.95];}else if(st.sitting){scripted=true;eye=[-6.4,2.08,7.86];target=[-13.2,2.4,13.6];}}
   // Sunrise hill: the walk up is scripted below; at the top the camera turns east, where the sun will rise.
   if(place==='sunrise'){if(step===0){eye=[-4.3,5.0,-2.4];target=[-1.0,2.6,-7.0];scripted=true;}else if(step>=3){eye=SUMMIT[0];target=SUMMIT[1];scripted=true;}}
@@ -413,7 +413,10 @@ function Breathe({on}:{on:boolean}){const {invalidate}=useThree();useEffect(()=>
 // type the composer uses, so nothing stops to compile in the middle of a scene.
 function Warmup({lite}:{lite:boolean}){const {gl,scene,camera}=useThree();
  // Twice: once the island is in, and again after the smaller pieces (photographs, the cake) have loaded too.
- useEffect(()=>{const warm=()=>{try{const rt=lite?null:new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType});const previous=gl.getRenderTarget();gl.setRenderTarget(rt);void gl.compileAsync(scene,camera).catch(()=>{});gl.setRenderTarget(previous);rt?.dispose();}catch{/* compiling later is only slower */}};
+ useEffect(()=>{const warm=()=>{if(document.hidden)return;const rt=lite?null:new THREE.WebGLRenderTarget(4,4,{type:THREE.HalfFloatType});const previous=gl.getRenderTarget();
+  // Queue shader compilation without async readiness polling: a scene switch can
+  // dispose one of those materials before Three's delayed poll reads its program.
+  try{gl.setRenderTarget(rt);gl.compile(scene,camera);}catch{/* The next render can compile on demand. */}finally{gl.setRenderTarget(previous);rt?.dispose();}};
   // Textures of things still hidden (the table's photographs, the bunting) are uploaded now too.
   const upload=()=>{scene.traverse(o=>{const m=(o as THREE.Mesh).material;if(!m)return;for(const mat of Array.isArray(m)?m:[m])for(const key of ['map','emissiveMap','alphaMap']){const t=(mat as unknown as Record<string,THREE.Texture|null>)[key];if(t?.isTexture&&t.image)gl.initTexture(t);}});};
   const a=setTimeout(warm,600),b=setTimeout(()=>{warm();upload();},5000);return()=>{clearTimeout(a);clearTimeout(b);};},[gl,scene,camera,lite]);
