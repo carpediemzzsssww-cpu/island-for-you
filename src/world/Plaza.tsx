@@ -56,7 +56,7 @@ export default function Plaza(){
  useEffect(()=>()=>{map.dispose();paving.dispose();pots.dispose();potMaterial.dispose();},[map,paving,pots,potMaterial]);
  // A tap on the square scatters a few petals; once the evening is ready, it takes her to the table.
  const tap=(e:ThreeEvent<MouseEvent>)=>{const s=useIsland.getState();if(!s.started||s.intro||s.object||e.delta>8)return;e.stopPropagation();
-  if(!s.place&&s.save.endingUnlocked){s.travel('celebration');return;}poke('petals',e.point);};
+  if(!s.place){s.travel('celebration');return;}poke('petals',e.point);};
  return <group>
   <mesh rotation={[-Math.PI/2,0,0]} position={[CX,Y,CZ]} material={paving} receiveShadow onClick={tap}><circleGeometry args={[R,96]}/></mesh>
   <mesh geometry={pots} material={potMaterial} castShadow receiveShadow onClick={e=>{const s=useIsland.getState();if(!s.started||s.intro||s.object||e.delta>8)return;e.stopPropagation();poke('petals',e.point);}}/>

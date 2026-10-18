@@ -6,7 +6,7 @@ import World,{hoverBus} from './world/World';
 import {useIsland} from './store';
 import {places,coreMemories,site,today} from './content';
 import type {PlaceId} from './content';
-import Artifacts,{SceneActions} from './ui/Artifacts';
+import Artifacts,{SceneActions,RainbowOverview} from './ui/Artifacts';
 import Countdown from './ui/Countdown';
 import {EveningInvite,TimeDial,progressLabel} from './ui/Story';
 import {beginAudio,updateAudio,trackBus} from './lib/audio';
@@ -32,21 +32,23 @@ export default function App(){
  useEffect(()=>{if(!s.notice)return;const t=setTimeout(()=>s.notify(null),5000);return()=>clearTimeout(t);},[s.notice]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){if(s.object)s.open(null);else s.travel(null);}if(e.key==='f'&&!['INPUT','TEXTAREA'].includes((e.target as HTMLElement)?.tagName)){if(document.fullscreenElement)document.exitFullscreen?.();else document.documentElement.requestFullscreen?.();}};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[s.object,s.place]);
  // Soft guidance: after a long quiet moment on the island view, a small star appears on the journal.
- useEffect(()=>{setLingering(false);if(!s.started||s.intro||s.place||s.object||s.save.letterRead)return;let timer=setTimeout(()=>setLingering(true),45000);const wake=()=>{clearTimeout(timer);setLingering(false);timer=setTimeout(()=>setLingering(true),45000);};window.addEventListener('pointerdown',wake);return()=>{clearTimeout(timer);window.removeEventListener('pointerdown',wake);};},[s.started,s.intro,s.place,s.object,s.save.letterRead]);
+ useEffect(()=>{setLingering(false);if(!s.started||s.intro||s.place||s.object||s.save.endingSeen)return;let timer=setTimeout(()=>setLingering(true),45000);const wake=()=>{clearTimeout(timer);setLingering(false);timer=setTimeout(()=>setLingering(true),45000);};window.addEventListener('pointerdown',wake);return()=>{clearTimeout(timer);window.removeEventListener('pointerdown',wake);};},[s.started,s.intro,s.place,s.object,s.save.endingSeen]);
+ useEffect(()=>{const next=()=>useIsland.getState().nextRecord();trackBus.addEventListener('ended',next);return()=>trackBus.removeEventListener('ended',next);},[]);
+ useEffect(()=>{if(s.weather!=='glow')return;const timer=setTimeout(()=>useIsland.getState().setWeather('clear'),Math.max(0,s.rainbowUntil-performance.now()));return()=>clearTimeout(timer);},[s.weather,s.rainbowUntil]);
  const firstSteps=!Object.values(s.save.core).some(Boolean);
  // The journal calls softly until she has opened it, and again whenever there is something new to tick off.
  const calling=s.started&&!s.intro&&(!s.save.home.journalOpened||coreMemories.some(m=>s.save.core[m.key]&&!s.save.home.thingsSeen.includes(m.key))||s.save.endingUnlocked&&!s.save.endingSeen);
  const touch=typeof matchMedia!=='undefined'&&matchMedia('(pointer: coarse)').matches;
  const hoverPlace=(id:PlaceId)=>(e:React.MouseEvent)=>hoverBus.dispatchEvent(new CustomEvent('hover',{detail:{place:id,x:e.clientX,y:e.clientY}}));
- return <main className={`island-app time-${s.save.time} ${s.started?'entered':'arrival'}`}><div className="world"><WorldBoundary><Suspense fallback={null}><World/></Suspense></WorldBoundary></div><div className="vignette"/>
+ return <main className={`island-app ${s.place?'at-'+s.place:''} time-${s.save.time} ${s.started?'entered':'arrival'}`}><div className="world"><WorldBoundary><Suspense fallback={null}><World/></Suspense></WorldBoundary></div><div className="vignette"/>
  <header className="topbar">
   <button className="brand" onClick={()=>s.travel(null)} aria-label="返回整座小岛"><span className="brand-number">{site.brand}<span className="brand-star"><Asterisk size={17} stroke={1.9}/></span></span><span className="brand-word">ISLAND</span></button>
   {s.started&&<nav className="tools" aria-label="小岛工具"><button title="声音" aria-label={s.save.settings.muted?'开启声音':'关闭声音'} onClick={()=>s.setting('muted',!s.save.settings.muted)}>{s.save.settings.muted?<VolumeX size={18}/>:<Volume2 size={18}/>}</button><TimeDial/><button title={calling?'手账里有新的东西':'手账与地图'} aria-label={`打开手账，${progressLabel(s.save.core)}${calling?'，有新的内容':''}`} onClick={()=>s.open('journal')} className={`journal-button ${calling?'calling':lingering?'journal-hint':''}`}><BookOpen size={18}/></button><button title="设置" aria-label="设置" onClick={()=>s.open('settings')}><Settings2 size={18}/></button></nav>}
  </header>
  {!s.started&&!active&&<section className="welcome"><span className="welcome-date">{today.month} · {today.day}</span><h1>小岛终于等到你啦！</h1><button id="enter-island" className="enter-button" aria-label="让海风带路" onClick={()=>{beginAudio();s.start();}}>上岛 <ArrowUpRight size={18}/></button><span className="welcome-sound">打开声音，会听见大海</span></section>}
- {s.started&&!s.intro&&!s.place&&<><div className="map-markers">{Object.entries(places).filter(([id])=>id!=='celebration'||s.save.endingUnlocked).map(([id,p])=><button key={id} data-place={id} style={{visibility:'hidden'}} className="place-hit" aria-label={`前往${p.name}`} onMouseMove={hoverPlace(id as PlaceId)} onMouseLeave={()=>hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}))} onClick={()=>{hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}));s.travel(id as PlaceId);}}><span aria-hidden="true"/></button>)}</div>{firstSteps&&<p className="island-hint">{touch?'点建筑进入 · 单指环顾 · 双指缩放':'点建筑进入 · 拖动环顾 · 滚轮缩放'}</p>}</>}
- {s.started&&s.place&&!s.object&&<section className="place-heading"><button className="back-link" aria-label="回到小岛" onClick={()=>s.travel(null)}><ArrowLeft size={18}/></button><h1>{places[s.place].name}</h1></section>}
+ {s.started&&!s.intro&&!s.place&&<><div className="map-markers">{Object.entries(places).map(([id,p])=><button key={id} data-place={id} style={{visibility:'hidden'}} className="place-hit" aria-label={`前往${p.name}`} onMouseMove={hoverPlace(id as PlaceId)} onMouseLeave={()=>hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}))} onClick={()=>{hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}));s.travel(id as PlaceId);}}><span aria-hidden="true"/></button>)}</div>{firstSteps&&s.weather!=='glow'&&<p className="island-hint">{touch?'点建筑进入 · 单指环顾 · 双指缩放':'点建筑进入 · 拖动环顾 · 滚轮缩放'}</p>}</>}
+ {s.started&&s.place&&!s.object&&<section className="place-heading"><button className="back-link" aria-label="回到小岛" title="退出场景，回到整座小岛（Esc）" onClick={()=>s.travel(null)}><ArrowLeft size={18}/>退出场景</button></section>}
  <HoverLabel/><NowPlaying/>
- <SceneActions/>{s.started&&!s.object&&(s.place==='sunset'||s.place==='sunrise'||s.place==='cloud')&&<Countdown/>}<EveningInvite/><Artifacts/>{s.notice&&<div role="status" className="toast">{s.notice}</div>}{s.storageError&&<div role="alert" className="storage-warning">浏览器暂时无法保存探索记录，请允许网站存储。</div>}<Loading/>
+ <SceneActions/><RainbowOverview/>{s.started&&!s.object&&(s.place==='sunset'||s.place==='sunrise'||s.place==='cloud'||s.weather==='glow')&&<Countdown/>}<EveningInvite/><Artifacts/>{s.notice&&<div role="status" className="toast">{s.notice}</div>}{s.storageError&&<div role="alert" className="storage-warning">浏览器暂时无法保存探索记录，请允许网站存储。</div>}<Loading/>
  </main>;
 }

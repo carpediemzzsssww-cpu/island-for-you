@@ -15,7 +15,7 @@ function drawSign(text:string,w:number,h:number,vertical:boolean,colour:string,g
  // Enamel house plate: coloured ground with a thin light inner border.
  if(plate&&!glow){const r=canvas.height*.16,i=canvas.height*.09;ctx.fillStyle=plate;ctx.beginPath();ctx.roundRect(0,0,canvas.width,canvas.height,r);ctx.fill();ctx.strokeStyle='rgba(255,255,255,.85)';ctx.lineWidth=canvas.height*.035;ctx.beginPath();ctx.roundRect(i,i,canvas.width-2*i,canvas.height-2*i,r*.6);ctx.stroke();}
  ctx.fillStyle=glow?'#fff':colour;ctx.textAlign='center';ctx.textBaseline='middle';
- const family='"Noto Serif SC","Songti SC","STSong",serif';
+ const family='"Island Song","Songti SC","STSong",serif';
  if(vertical){const size=Math.min(canvas.width*.62,canvas.height/(text.length+.6));ctx.font=`600 ${size}px ${family}`;[...text].forEach((c,i)=>ctx.fillText(c,canvas.width/2,canvas.height/2+(i-(text.length-1)/2)*size*1.08));}
  else{const size=Math.min(canvas.height*.66,canvas.width*.86/text.length);ctx.font=`600 ${size}px ${family}`;ctx.letterSpacing=`${size*.18}px`;ctx.fillText(text,canvas.width/2+size*.09,canvas.height/2+size*.04);}
  const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=glow?THREE.NoColorSpace:THREE.SRGBColorSpace;tex.anisotropy=4;return tex;
@@ -24,7 +24,7 @@ function Sign({sign}:{sign:typeof anchors.signs[number]}){
  const material=useRef<THREE.MeshStandardMaterial>(null);const [ready,setReady]=useState(0);const base=sign.id.replace(/-[lr]$/,'');
  const extra=sign as typeof sign&{vertical?:boolean;bg?:string;ink?:string;hideInside?:boolean};const indoors=useIsland(s=>!!extra.hideInside&&s.place==='home');
  const textures=useMemo(()=>ready?[drawSign(sign.text,sign.size[0],sign.size[1],!!extra.vertical,extra.ink??ink[base]??'#3e4b40',false,extra.bg),drawSign(sign.text,sign.size[0],sign.size[1],!!extra.vertical,'',true)]:null,[ready,sign,base,extra]);
- useEffect(()=>{let live=true;document.fonts.load('600 48px "Noto Serif SC"',sign.text).catch(()=>{}).finally(()=>{if(live)setReady(1);});return()=>{live=false;};},[sign.text]);
+ useEffect(()=>{let live=true;document.fonts.load('600 48px "Island Song"',sign.text).catch(()=>{}).finally(()=>{if(live)setReady(1);});return()=>{live=false;};},[sign.text]);
  useEffect(()=>()=>textures?.forEach(t=>t.dispose()),[textures]);
  useFrame((_,dt)=>{const m=material.current;if(!m)return;const s=useIsland.getState();const night=atmosphere.stars>.3||atmosphere.mood==='rain';
   // The diner sign lights up after the first order; at night every shop sign glows a little.

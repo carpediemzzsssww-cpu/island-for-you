@@ -644,7 +644,9 @@ for i in range(60):
  gy=ground_at(x,z)
  for j in range(3):rod('coastal grass',(x+j*.06,gy,z),(x+(j-1)*.12,gy+.24+random.random()*.14,z+.04),.012,'grassLight',.002,4)
 for i in range(22):
- x=-8+random.random()*3.4;z=8.4+random.random()*1.3;sphere('seashell',(x,.99,z),(.08,.035,.055),'white' if i%3 else 'pink',8,5)
+ x=-8+random.random()*3.4;z=8.4+random.random()*1.3;shell=sphere('seashell',(x,.99,z),(.08,.035,.055),'white' if i%3 else 'pink',8,5)
+ # Keep the writing patch clear; build first so the seeded random sequence stays unchanged.
+ if -8.6<x< -5.35 and 7.9<z<9.75:bpy.data.objects.remove(shell,do_unlink=True)
 # A green post box and a coconut cart for ordinary street life.
 cube('post box',(1.9,1.62,3.6),(.34,.62,.3),'mailGreen',.04);cube('post box lid',(1.9,1.96,3.6),(.4,.06,.36),'mailGreen',.02);cube('post slot',(1.9,1.78,3.76),(.18,.03,.02),'ink',0);rod('post box foot',(1.9,1.12,3.6),(1.9,1.32,3.6),.06,'mailGreen',vertices=8)
 cube('coconut cart',(-3.1,1.52,6.7),(1.0,.36,.55),'wood',.03)

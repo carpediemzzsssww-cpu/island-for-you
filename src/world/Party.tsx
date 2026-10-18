@@ -15,7 +15,7 @@ const flameTexture=()=>canvasTexture(64,128,ctx=>{const g=ctx.createRadialGradie
  ctx.fillStyle=g;ctx.beginPath();ctx.moveTo(32,6);ctx.bezierCurveTo(52,54,60,92,32,124);ctx.bezierCurveTo(4,92,12,54,32,6);ctx.fill();});
 const stripeTexture=(a:string,b:string)=>{const t=canvasTexture(32,128,ctx=>{ctx.fillStyle=a;ctx.fillRect(0,0,32,128);ctx.strokeStyle=b;ctx.lineWidth=7;for(let y=-40;y<170;y+=22){ctx.beginPath();ctx.moveTo(-4,y);ctx.lineTo(36,y-30);ctx.stroke();}});t.wrapS=t.wrapT=THREE.RepeatWrapping;return t;};
 const plaqueTexture=()=>canvasTexture(256,128,ctx=>{ctx.fillStyle='#fbf3e3';ctx.beginPath();ctx.roundRect(4,4,248,120,34);ctx.fill();ctx.strokeStyle='#e7c9b6';ctx.lineWidth=5;ctx.beginPath();ctx.roundRect(14,14,228,100,26);ctx.stroke();
- ctx.fillStyle='#b8606f';ctx.font='600 44px "Noto Serif SC","Songti SC",serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('生日快乐',128,66);});
+ ctx.fillStyle='#b8606f';ctx.font='600 44px "Island Song","Songti SC",serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('好日子',128,66);});
 
 function Lathe({profile,color,y=0,segments=48,rough=.55,clearcoat=0}:{profile:[number,number][];color:string;y?:number;segments?:number;rough?:number;clearcoat?:number}){
  const geometry=useMemo(()=>new THREE.LatheGeometry(profile.map(([r,h])=>new THREE.Vector2(r,h)),segments),[profile,segments]);
@@ -104,9 +104,9 @@ export function Fireworks({active}:{active:boolean}){
 
 /** HAPPY BIRTHDAY pennants along the festoon line between the two lamp posts on the square. */
 export function Bunting({show}:{show:boolean}){
- const word='HAPPY BIRTHDAY';const colours=['#f2b9c7','#f8ecd4','#bfe0cf','#f6d38e'];
+ const word='CHEERS TO YOU';const colours=['#f2b9c7','#f8ecd4','#bfe0cf','#f6d38e'];
  const textures=useMemo(()=>[...word].map((ch,i)=>canvasTexture(128,148,ctx=>{ctx.fillStyle=colours[i%4];ctx.beginPath();ctx.moveTo(4,4);ctx.lineTo(124,4);ctx.lineTo(64,144);ctx.closePath();ctx.fill();
-  ctx.fillStyle=i%4===0?'#ffffff':'#8b5a63';ctx.font='600 54px "Noto Serif SC","Songti SC",serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ch,64,48);})),[]);
+  ctx.fillStyle=i%4===0?'#ffffff':'#8b5a63';ctx.font='600 54px "Island Song","Songti SC",serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(ch,64,48);})),[]);
  // Backs stay plain: seen from behind, letters would read mirrored.
  const blank=useMemo(()=>colours.map(c=>canvasTexture(128,148,ctx=>{ctx.fillStyle=c;ctx.beginPath();ctx.moveTo(4,4);ctx.lineTo(124,4);ctx.lineTo(64,144);ctx.closePath();ctx.fill();})),[]);
  const group=useRef<THREE.Group>(null);const grow=useRef(0);

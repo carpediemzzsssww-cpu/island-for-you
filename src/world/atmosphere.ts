@@ -1,5 +1,6 @@
 import {Color,MathUtils,Vector3} from 'three';
 import {useIsland} from '../store';
+import {TIMING,SUNSET_RATE} from '../experience';
 
 // One palette per narrative light. Everything in the world (sky, sea, clouds, sun, fog, bloom) eases toward the current one.
 type Mood={zenith:string;horizon:string;haze:string;sun:string;sunIntensity:number;sunDir:[number,number,number];hemiSky:string;hemiGround:string;hemiIntensity:number;
@@ -38,7 +39,7 @@ export type MoodId=keyof typeof moods;
 export const carry={mood:null as MoodId|null,until:0,slowUntil:0};
 export function carryMorning(){const now=performance.now();carry.mood='sunrise';carry.until=now+5500;carry.slowUntil=now+17000;}
 /** On the hilltop the dawn arrives by itself; 0 → 1 over the wait. */
-export function sunriseDawn(){const s=useIsland.getState();if(s.place!=='sunrise'||s.sunriseStep<3)return 0;return Math.min(1,(performance.now()-s.sunriseSince)/(s.save.settings.reducedMotion?2000:14000));}
+export function sunriseDawn(){const s=useIsland.getState();if(s.place!=='sunrise'||s.sunriseStep<3)return 0;return Math.min(1,(performance.now()-s.sunriseSince)/(s.save.settings.reducedMotion?2000:TIMING.dawn*1000));}
 export function currentMood():MoodId{
  const s=useIsland.getState();
  if(carry.mood&&!s.place&&performance.now()<carry.until)return carry.mood;
@@ -66,7 +67,7 @@ function blendTo(a:MoodId,b:MoodId,f:number){const x=targets[a],y=targets[b];col
 function sunsetTarget(dt:number){
  const s=useIsland.getState();
  if(sunsetClock.place!=='sunset')sunsetClock.progress=0;
- if(s.object!=='postcards')sunsetClock.progress=Math.min(SUNSET[SUNSET.length-1][0],sunsetClock.progress+dt*(s.save.settings.reducedMotion?6:s.sitting?2.6:1));
+ if(!s.object)sunsetClock.progress=Math.min(SUNSET[SUNSET.length-1][0],sunsetClock.progress+dt*(s.save.settings.reducedMotion?6:(s.sitting?1.5:1)*SUNSET_RATE));
  const p=sunsetClock.progress;let i=0;while(i<SUNSET.length-2&&p>SUNSET[i+1][0])i++;
  const [t0,a]=SUNSET[i],[t1,b]=SUNSET[i+1];const f=MathUtils.smoothstep(p,t0,t1);return blendTo(a,b,f);
 }

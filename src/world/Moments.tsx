@@ -2,6 +2,7 @@ import {useEffect,useMemo,useRef} from 'react';
 import {useFrame,useThree} from '@react-three/fiber';
 import * as THREE from 'three';
 import {useIsland} from '../store';
+import {TIMING,SUNSET_RATE} from '../experience';
 import {atmosphere,sunsetClock,sunriseDawn} from './atmosphere';
 import {poke} from './Pokes';
 import {chime,gullCall,sparkleSound,thunder} from '../lib/audio';
@@ -13,13 +14,13 @@ import {chime,gullCall,sparkleSound,thunder} from '../lib/audio';
 
 export type Catch='greenFlash'|'firstLight'|'rainbow';
 export const moment={kind:null as null|'sunset'|'sunrise'|'rain',remaining:0,progress:0,call:null as null|Catch,callUntil:0,said:'',saidUntil:0};
-const SUNSET_TOUCH=48,DAWN=14,RAIN=14,WINDOW=3200;
+const SUNSET_TOUCH=48,DAWN=TIMING.dawn,RAIN=TIMING.rain,WINDOW=5000;
 const fired=new Set<string>();let rainSince=0;
 const say=(text:string,ms=3800)=>{moment.said=text;moment.saidUntil=performance.now()+ms;};
 /** A tap anywhere on the world while a moment is open catches it. Called by the world's tap handler. */
 export function catchMoment(){const c=moment.call;if(!c||performance.now()>moment.callUntil)return false;moment.call=null;
  const s=useIsland.getState();s.dispatch({type:'surprise',id:c});sparkleSound();chime();burst.at=performance.now();burst.kind=c;
- say({greenFlash:'接住了，绿色的那一秒。',firstLight:'接住了，今天的第一缕光。',rainbow:'彩虹被你看见了。'}[c],4500);return true;}
+ say({greenFlash:'接住了，凡尔纳写过的那一秒绿色。',firstLight:'接住了，今天的第一缕光。',rainbow:'彩虹被你看见了。'}[c],4500);return true;}
 const burst={at:0,kind:null as Catch|null};
 function glowTexture(inner:string,outer:string){const c=document.createElement('canvas');c.width=c.height=128;const g=c.getContext('2d')!;const r=g.createRadialGradient(64,64,0,64,64,64);r.addColorStop(0,inner);r.addColorStop(.35,outer);r.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=r;g.fillRect(0,0,128,128);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;return t;}
 // A flat band; the colour runs across it from red (outside) to violet (inside), and it fades toward both feet.
@@ -37,11 +38,11 @@ export default function Moments(){
  useEffect(()=>()=>{green.dispose();gold.dispose();arc.dispose();arcMat.dispose();},[green,gold,arc,arcMat]);
  const weather=useIsland(s=>s.weather);const place=useIsland(s=>s.place);const flockStart=useRef(-1e9),flash=useRef(-1e9);
  useEffect(()=>{if(weather==='rain'){rainSince=performance.now();fired.delete('thunder');fired.delete('rainbow');}},[weather]);
- useEffect(()=>{fired.clear();moment.call=null;},[place]);
- const dir=useMemo(()=>new THREE.Vector3(),[]);
+ useEffect(()=>{const glowing=useIsland.getState().weather==='glow';if(!glowing){fired.clear();moment.call=null;moment.said='';moment.saidUntil=0;}},[place]);
+ const dir=useMemo(()=>new THREE.Vector3(),[]),rainbowAnchor=useMemo(()=>new THREE.Vector3(),[]);
  useFrame((_,dt)=>{const s=useIsland.getState(),now=performance.now(),reduced=s.save.settings.reducedMotion;moment.kind=null;
   // Sunset: the countdown runs on the same clock as the sky (faster while she sits on the bench).
-  if(s.place==='sunset'&&s.weather==='clear'&&!s.object){const rate=reduced?6:s.sitting?2.6:1,p=sunsetClock.progress;moment.kind='sunset';moment.remaining=Math.max(0,(SUNSET_TOUCH-p)/rate);moment.progress=Math.min(1,p/SUNSET_TOUCH);
+  if(s.place==='sunset'&&s.weather==='clear'&&!s.object){const rate=reduced?6:(s.sitting?1.5:1)*SUNSET_RATE,p=sunsetClock.progress;moment.kind='sunset';moment.remaining=Math.max(0,(SUNSET_TOUCH-p)/rate);moment.progress=Math.min(1,p/SUNSET_TOUCH);
    if(p>17&&!fired.has('birds')){fired.add('birds');flockStart.current=now;gullCall();}
    if(p>38&&!fired.has('path')){fired.add('path');dir.copy(atmosphere.sunDir).setY(0).normalize();for(let i=0;i<5;i++)setTimeout(()=>poke('glint',camera.position.clone().addScaledVector(dir,9+i*3.5).setY(-.02).add(new THREE.Vector3((Math.random()-.5)*1.5,0,(Math.random()-.5)*1.5))),i*260);}
    if(p>=SUNSET_TOUCH&&!fired.has('touch')){fired.add('touch');moment.call='greenFlash';moment.callUntil=now+WINDOW;}}
@@ -50,10 +51,10 @@ export default function Moments(){
    if(d>.3&&!fired.has('birds')){fired.add('birds');flockStart.current=now;gullCall();}
    if(d>=1&&!fired.has('first')){fired.add('first');moment.call='firstLight';moment.callUntil=now+WINDOW;}}
   // Rain at the library, then the glow and a rainbow.
-  else if(s.place==='cloud'&&s.weather!=='clear'){const k=Math.min(1,(now-rainSince)/((reduced?2:RAIN)*1000));moment.kind='rain';moment.remaining=s.weather==='rain'?(1-k)*(reduced?2:RAIN):0;moment.progress=s.weather==='rain'?k:1;
+  else if(s.weather==='glow'||s.place==='cloud'&&s.weather==='rain'){const k=Math.min(1,(now-rainSince)/((reduced?2:RAIN)*1000));moment.kind='rain';moment.remaining=s.weather==='rain'?(1-k)*(reduced?2:RAIN):0;moment.progress=s.weather==='rain'?k:1;
    if(s.weather==='rain'&&k>.4&&!fired.has('thunder')){fired.add('thunder');thunder();flash.current=now;}
    if(s.weather==='glow'&&!fired.has('rainbow')){fired.add('rainbow');moment.call='rainbow';moment.callUntil=now+WINDOW+1800;}}
-  if(moment.call&&now>moment.callUntil){const missed=moment.call;moment.call=null;say({greenFlash:'绿光一闪就没了。',firstLight:'光已经铺满海面了。',rainbow:'彩虹慢慢淡了。'}[missed],3000);}
+  if(moment.call&&now>moment.callUntil){const missed=moment.call;moment.call=null;say({greenFlash:'绿光一闪就没了。',firstLight:'光已经铺满海面了。',rainbow:'彩虹还在，可以慢慢看。'}[missed],3000);}
   // The sun's own sprite: the green flash on the horizon, or the first gold of the morning.
   const sp=sun.current;if(sp){const call=moment.call,sinceBurst=(now-burst.at)/1000;const showing=call==='greenFlash'||call==='firstLight'||sinceBurst<1.2&&(burst.kind==='greenFlash'||burst.kind==='firstLight');
    sp.visible=showing;if(showing){dir.copy(atmosphere.sunDir);dir.y=Math.max(dir.y,.004);dir.normalize();sp.position.copy(camera.position).addScaledVector(dir,360);
@@ -64,7 +65,7 @@ export default function Moments(){
    f.children.forEach((b,i)=>{const w=Math.sin(now/90+i)*.6;(b.children[0] as THREE.Object3D).rotation.z=w;(b.children[1] as THREE.Object3D).rotation.z=-w;});}}
   // Lightning: a soft flash of the whole sky.
   if(now-flash.current<240)atmosphere.haze.lerp(new THREE.Color('#e8eef2'),.4*(1-(now-flash.current)/240));
-  const rb=rainbow.current;if(rb){const show=s.place==='cloud'&&s.weather==='glow';const u=(rb.material as THREE.ShaderMaterial).uniforms.uShow;u.value=THREE.MathUtils.lerp(u.value,show?1:0,Math.min(1,dt*.6));rb.visible=u.value>.01;}
+  const rb=rainbow.current;if(rb){const show=s.weather==='glow';const u=(rb.material as THREE.ShaderMaterial).uniforms.uShow;u.value=THREE.MathUtils.lerp(u.value,show?1:0,Math.min(1,dt*.6));rb.visible=u.value>.01;rb.scale.setScalar(!s.place&&(camera as THREE.PerspectiveCamera).aspect>1?.78:1);if(!s.place){rainbowAnchor.copy(camera.position).setY(0).normalize().multiplyScalar(-46).setY(-3);}else rainbowAnchor.set(-14,-3,30);rb.position.lerp(rainbowAnchor,Math.min(1,dt*2));rb.rotation.y=Math.atan2(camera.position.x-rb.position.x,camera.position.z-rb.position.z);}
  });
  return <group>
   <sprite ref={sun} visible={false} renderOrder={5}><spriteMaterial map={green} transparent depthWrite={false} depthTest={false} blending={THREE.AdditiveBlending} toneMapped={false} fog={false}/></sprite>

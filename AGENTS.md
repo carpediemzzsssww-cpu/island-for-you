@@ -1,7 +1,7 @@
 # An Island for You
 
-An explorable 3D birthday island (React 19 / React Three Fiber 9 / three 0.180 / Vite / TypeScript / zustand).
-This is the public, de-identified edition: pictures are generated white-background mouse doodles and the letter is a sample.
+An explorable 3D island for everyday visits and any celebration (React 19 / React Three Fiber 9 / three 0.180 / Vite / TypeScript / zustand).
+This is the public, de-identified edition: pictures are seven person-free white-background drawings and private letters are omitted.
 On 2026-10-11 the user explicitly requested keeping the private edition's five songs here. The track mapping in
 src/content.ts is intentional; do not replace it with synthesized arrangements. Recordings are separate from the code license.
 Private photographs may be used locally as generation references, as requested, but reference images, filenames,
@@ -18,3 +18,10 @@ EXIF, names, places, private letters and videos must not be committed. Generatio
 - Commit messages in English.
 
 Validation: `npm run build` · `npm test` · the browser checks in `docs/QA.md`.
+
+## Public experience — 2026-10-18
+- Celebration is available from the start. Five memories are optional; finding all five still brings an invitation.
+- Keep the private edition's scene copy where it is not identifying. No private envelope, personal photos/video or dedicated birthday claims.
+- The visitor can name their celebration; this stays in local browser storage.
+- Shared pacing, gallery/export, library interior and full-island rainbow are synchronized locally. Do not bulk-copy private content or assets.
+- On 2026-10-18 Iris authorized these changes, GitHub push, Vercel deployment and a public-edition mini-tool ZIP. Public outdoor first-person walking and all images containing people are removed.

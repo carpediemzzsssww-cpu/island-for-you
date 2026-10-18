@@ -2,14 +2,16 @@ import {Suspense,useEffect,useMemo,useRef,useState} from 'react';
 import {Canvas,useFrame,useThree} from '@react-three/fiber';
 import type {ThreeEvent} from '@react-three/fiber';
 import {CameraControls,useGLTF,useTexture} from '@react-three/drei';
-import {EffectComposer,Bloom,ToneMapping,Noise,FXAA} from '@react-three/postprocessing';
-import {BlendFunction,ToneMappingMode} from 'postprocessing';
+import {EffectComposer,Bloom,ToneMapping,FXAA} from '@react-three/postprocessing';
+import {ToneMappingMode} from 'postprocessing';
 import type {BloomEffect} from 'postprocessing';
 import * as THREE from 'three';
 import {places} from '../content';
 import type {PlaceId} from '../content';
 import {useIsland} from '../store';
-import Objects from './Objects';
+import {TIMING} from '../experience';
+import Objects,{shimmerState} from './Objects';
+import LibraryView from './LibraryView';
 import Life from './Life';
 import {sandTexture,clearSand} from '../lib/sand';
 import {atmosphere,stepAtmosphere} from './atmosphere';
@@ -68,7 +70,7 @@ function makeSea(){
  material.userData={rt,mirror,matrix,frame:0};return material;
 }
 function Ocean({reflect}:{reflect:boolean}){
- const weather=useIsland(s=>s.weather);const {gl,scene,camera,size}=useThree();const mesh=useRef<THREE.Mesh>(null);const mobile=size.width<760;
+ const weather=useIsland(s=>s.weather),place=useIsland(s=>s.place);const {gl,scene,camera,size}=useThree();const mesh=useRef<THREE.Mesh>(null);const mobile=size.width<760;
  const material=useMemo(makeSea,[]);
  useEffect(()=>()=>{material.userData.rt.dispose();material.dispose();},[material]);
  useEffect(()=>{const m=mesh.current?.material as THREE.ShaderMaterial|undefined;if(!m)return;const k=mobile?.5:.55;m.userData.rt.setSize(Math.max(4,Math.round(size.width*k)),Math.max(4,Math.round(size.height*k)));},[size.width,size.height,gl,mobile]);
@@ -76,7 +78,7 @@ function Ocean({reflect}:{reflect:boolean}){
   u.uTime.value=clock.elapsed;u.uSunDisc.value=Math.max(atmosphere.sunDisc,atmosphere.stars*.35);u.uRain.value=THREE.MathUtils.lerp(u.uRain.value,weather==='rain'?1:0,Math.min(1,dt*2));
   // The seabed is lit by the same sky and sun as the island.
   sandLight.copy(atmosphere.hemiSky).multiplyScalar(atmosphere.hemiIntensity*.5).add(tmp.copy(atmosphere.sun).multiplyScalar(atmosphere.sunIntensity*.2));u.uSand.value.copy(sandBase).multiply(sandLight);
-  if(!reflect){u.uReflect.value=0;return;}
+  if(!reflect||(!['sunset','sunrise','cloud'].includes(place??'')&&weather!=='glow')){u.uReflect.value=0;return;}
   // Phones refresh the mirror every other frame.
   d.frame++;if(mobile&&d.frame%2)return;
   if(renderMirror(gl,scene,camera,water,d.rt,d.mirror,d.matrix))u.uReflect.value=1;});
@@ -113,7 +115,7 @@ function Lighting(){
  useEffect(()=>{if(sun.current){scene.add(sun.current.target);sun.current.target.position.set(0,1,0);}},[scene]);
  useEffect(()=>{gl.shadowMap.autoUpdate=false;gl.shadowMap.needsUpdate=true;return()=>{gl.shadowMap.autoUpdate=true;};},[gl]);
  useFrame(()=>{const s=sun.current,h=hemi.current;if(!s||!h)return;
-  frame.current++;if(frame.current%(size.width<760?3:2)===0||_sunWas.distanceToSquared(atmosphere.sunDir)>1e-7){gl.shadowMap.needsUpdate=true;_sunWas.copy(atmosphere.sunDir);}
+  frame.current++;if(frame.current%(size.width<760?12:8)===0||_sunWas.distanceToSquared(atmosphere.sunDir)>1e-7){gl.shadowMap.needsUpdate=true;_sunWas.copy(atmosphere.sunDir);}
   s.position.copy(atmosphere.sunDir).multiplyScalar(42).setY(Math.max(atmosphere.sunDir.y*42,6));s.color.copy(atmosphere.sun);s.intensity=atmosphere.sunIntensity;
   h.color.copy(atmosphere.hemiSky);h.groundColor.copy(atmosphere.hemiGround);h.intensity=atmosphere.hemiIntensity;});
  return <><hemisphereLight ref={hemi} args={['#dcebf1','#bba986',1.15]}/><directionalLight ref={sun} position={[-23,21,28]} intensity={2.7} color="#ffe2b6" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-24} shadow-camera-right={24} shadow-camera-top={22} shadow-camera-bottom={-22} shadow-camera-near={2} shadow-camera-far={110} shadow-radius={4} shadow-normalBias={.04} shadow-bias={-.0002}/></>;
@@ -129,22 +131,29 @@ export const hoverBus=new EventTarget();
 const _spot=new THREE.Vector3();
 function spotAction(name:string,point:THREE.Vector3):(()=>void)|null{const s=useIsland.getState();
  if(s.place==='sunset'&&!s.sandPhase){if(!s.sitting&&point.distanceTo(_spot.set(-6.25,1.35,7.65))<1.15)return()=>s.setSitting(true);if(Math.hypot(point.x+7,point.z-9.15)<1.6&&point.y<1.2)return()=>s.open('sand');}
- if(s.place==='cloud'&&s.weather==='clear'&&point.distanceTo(_spot.set(8.7,2.0,3.55))<1.9)return()=>s.setWeather('rain');
+ if(s.place==='cloud'&&s.weather==='clear'&&point.distanceTo(_spot.set(8.7,2.0,3.55))<1.9)return()=>s.setCloudView('inside');
  if(s.place==='sunrise'&&s.sunriseStep===0&&name==='hill')return()=>s.setSunrise(1);
  return null;}
 function Region({name}:{name:string}){
  const {scene}=useGLTF(`/models/${name}.glb`,DRACO);const place=useIsland(s=>s.place);
  // Clone scene and materials together so a repeated (StrictMode) memo call can never split them apart.
- const {copy,windows}=useMemo(()=>{const copy=scene.clone(true);const found:THREE.MeshStandardMaterial[]=[];const cloned=new Map<string,THREE.Material>();copy.traverse(o=>{if(o instanceof THREE.Mesh){o.castShadow=true;o.receiveShadow=true;const clone=(m:THREE.Material)=>{if(cloned.has(m.uuid))return cloned.get(m.uuid)!;const c=m.clone();cloned.set(m.uuid,c);weather(c);if(c instanceof THREE.MeshStandardMaterial&&(c.name==='glass'||c.name==='lamp')){c.emissive.set(c.name==='lamp'?'#ffd79a':'#ffc58b');c.emissiveIntensity=0;found.push(c);}return c;};o.material=Array.isArray(o.material)?o.material.map(clone):clone(o.material);}});return {copy,windows:found};},[scene]);
+ const {copy,windows}=useMemo(()=>{const copy=scene.clone(true);const found:THREE.MeshStandardMaterial[]=[];const cloned=new Map<string,THREE.Material>();copy.traverse(o=>{if(o instanceof THREE.Mesh){o.castShadow=true;o.receiveShadow=true;o.userData.walkObstacle=true;const clone=(m:THREE.Material)=>{if(cloned.has(m.uuid))return cloned.get(m.uuid)!;const c=m.clone();cloned.set(m.uuid,c);weather(c);if(c instanceof THREE.MeshStandardMaterial&&(c.name==='glass'||c.name==='lamp')){c.emissive.set(c.name==='lamp'?'#ffd79a':'#ffc58b');c.emissiveIntensity=0;found.push(c);}return c;};o.material=Array.isArray(o.material)?o.material.map(clone):clone(o.material);}});return {copy,windows:found};},[scene]);
  useFrame((_,dt)=>{const s=useIsland.getState();const lit=atmosphere.stars>.3||atmosphere.mood==='rain'||(s.save.endingSeen&&atmosphere.mood==='night');const dusk=atmosphere.mood.startsWith('sunset')||atmosphere.mood==='glow';windows.forEach(m=>m.emissiveIntensity=THREE.MathUtils.lerp(m.emissiveIntensity,m.name==='lamp'?(lit?2.6:dusk?1.2:.35):lit?1.25:dusk?.35:0,Math.min(dt,0.1)*1.5));});
- useEffect(()=>{copy.traverse(o=>{if(o.name.includes('home_front')||o.name.includes('home_roof'))o.visible=place!=='home';});},[copy,place]);
+ useEffect(()=>{copy.traverse(o=>{if(o.name.includes('home_front')||o.name.includes('home_roof')){
+  o.visible=place!=='home';
+  // Three's raycaster still hits children of invisible groups. The cut-away wall and roof
+  // must also release their hit tests, or they swallow clicks on the room's photographs.
+  o.traverse(child=>{if(child instanceof THREE.Mesh)child.raycast=o.visible?THREE.Mesh.prototype.raycast:()=>{};});
+ }});},[copy,place]);
  const enter=(e:ThreeEvent<MouseEvent>)=>{const state=useIsland.getState();if(!state.started||state.intro||state.object||e.delta>8)return;e.stopPropagation();
-  const destination=state.place?null:destinationFor(name,e.point);if(destination){state.travel(destination);document.body.style.cursor='';hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}));return;}
+  const destination=destinationFor(name,e.point);if(destination&&destination!==state.place){state.travel(destination);document.body.style.cursor='';hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}));return;}
   const act=state.place?spotAction(name,e.point):null;if(act){act();return;}
   // Not a way in: the island answers the touch (leaves, petals, grass, sand, a wall, the bicycle bell...).
   const mesh=e.object as THREE.Mesh;const mat=Array.isArray(mesh.material)?mesh.material[e.face?.materialIndex??0]:mesh.material;const n=e.face?e.face.normal.clone().transformDirection(mesh.matrixWorld):null;pokeAt(e.point,n,mat?.name??'');};
  const hover=(e:ThreeEvent<PointerEvent>)=>{const s=useIsland.getState();if(!s.started||s.intro||e.pointerType!=='mouse')return;
-  if(s.place){if(!s.object&&spotAction(name,e.point)){e.stopPropagation();document.body.style.cursor='pointer';}else document.body.style.cursor='';return;}const destination=destinationFor(name,e.point);if(!destination)return;e.stopPropagation();document.body.style.cursor='pointer';hoverBus.dispatchEvent(new CustomEvent('hover',{detail:{place:destination,x:e.nativeEvent.clientX,y:e.nativeEvent.clientY}}));};
+  if(s.object)return;const destination=destinationFor(name,e.point);
+  if(s.place&&(!destination||destination===s.place)){if(spotAction(name,e.point)){e.stopPropagation();document.body.style.cursor='pointer';}else document.body.style.cursor='';return;}
+  if(!destination)return;e.stopPropagation();document.body.style.cursor='pointer';hoverBus.dispatchEvent(new CustomEvent('hover',{detail:{place:destination,x:e.nativeEvent.clientX,y:e.nativeEvent.clientY}}));};
  return <primitive object={copy} onClick={enter} onPointerMove={hover} onPointerOut={()=>{document.body.style.cursor='';hoverBus.dispatchEvent(new CustomEvent('hover',{detail:null}));}}/>;
 }
 useGLTF.preload(['terrain','town','home','park','coast','hill'].map(n=>`/models/${n}.glb`),DRACO);
@@ -180,10 +189,10 @@ function islandPose(v:IslandView,d:number,azimuth=AZIMUTH){
  return {eye,look:new THREE.Vector3(...CENTRE).add(up),eyeShifted:eye.clone().add(up),offset:focalFor(v,d)};
 }
 // Scripted moves glide slowly; her own turns, tilts and zooms answer quickly.
-const GLIDE=1.05,HAND=.3;
+const GLIDE=.75,HAND=.3;
 const _sph=new THREE.Spherical(),_tgt=new THREE.Vector3();
 function Cameras(){
- const controls=useRef<CameraControls>(null);const {size,camera,gl}=useThree();const place=useIsland(s=>s.place);const object=useIsland(s=>s.object);const intro=useIsland(s=>s.intro);const reset=useIsland(s=>s.cameraReset);const reduced=useIsland(s=>s.save.settings.reducedMotion);const step=useIsland(s=>s.sunriseStep);const started=useIsland(s=>s.started);const weather=useIsland(s=>s.weather);const party=useIsland(s=>s.party);const sitting=useIsland(s=>s.sitting);const closeUp=useIsland(s=>s.closeUp);const sandPhase=useIsland(s=>s.sandPhase);const [fireworks,setFireworks]=useState(false);const lastParty=useRef(party);const mobile=size.width<760;
+ const controls=useRef<CameraControls>(null);const {size,camera,gl}=useThree();const place=useIsland(s=>s.place);const object=useIsland(s=>s.object);const intro=useIsland(s=>s.intro);const reset=useIsland(s=>s.cameraReset);const reduced=useIsland(s=>s.save.settings.reducedMotion);const step=useIsland(s=>s.sunriseStep);const started=useIsland(s=>s.started);const weather=useIsland(s=>s.weather);const party=useIsland(s=>s.party);const sitting=useIsland(s=>s.sitting);const closeUp=useIsland(s=>s.closeUp);const sandPhase=useIsland(s=>s.sandPhase);const [fireworks,setFireworks]=useState(false);const lastParty=useRef(party);const mobile=size.width<760;const cloudView=useIsland(s=>s.cloudView);
  const idle=useRef(performance.now());const view=useMemo(()=>islandView(size.width,size.height),[size.width,size.height]);const baseFov=useRef(42);
  // The direction she last looked at the island from; coming back from a place pulls back along it.
  const islandAzimuth=useRef(AZIMUTH);const wasIsland=useRef(false);const islandKey=useRef('');const flying=useRef(false);const lastD=useRef(0);const [reach,setReach]=useState(12);
@@ -202,12 +211,13 @@ function Cameras(){
  else if(intro){fovFor(view.fov);const eye=new THREE.Vector3(),look=new THREE.Vector3();c.getPosition(eye);c.getTarget(look);rise.current={t0:performance.now(),eye,look};}
  else if(place){fovFor(mobile?48:42);c.setFocalOffset(0,0,0,!reduced);const p=places[place];let eye=p.camera;let target=p.target;let scripted=false;
   // After the rain the camera looks up and out to sea, so the glowing sky and its puddle reflections fill the frame.
-  if(place==='cloud'&&weather==='glow'){eye=[10.6,1.8,3.1];target=[4.2,3.3,10.2];scripted=true;}
+  if(place==='cloud'&&weather==='glow'&&cloudView==='outside'){eye=[10.6,1.8,3.1];target=[4.2,3.3,10.2];scripted=true;}
+  if(place==='cloud'&&cloudView==='inside'){eye=[8.65,1.96,1.28];target=[8.18,1.98,4.8];scripted=true;}
   // The birthday evening: wide while the lamps light, close on the cake, then out to sea for the fireworks.
   if(place==='celebration'){const party=useIsland.getState().party;scripted=party>=2;if(party>=2&&party<=3){eye=mobile?[.3,2.95,8.4]:[.25,2.7,7.7];target=[0,1.98,5.35];}else if(party===4){eye=mobile?[.55,2.8,7.7]:[.5,2.55,7.0];target=[0,2.0,5.35];}else if(party===5&&fireworks){eye=mobile?[.5,2.5,13.8]:[.7,2.55,11.8];target=mobile?[0,5.9,-1]:[0,5.4,-1];}else if(party===5){eye=mobile?[.8,2.9,9.4]:[.7,2.55,8.5];target=[0,1.95,5.4];}}
   // After ordering, the camera sits down at the table.
   if(place==='diner'&&useIsland.getState().closeUp&&!object){scripted=true;eye=mobile?[5.05,2.95,6.0]:[4.75,2.62,5.45];target=[3.65,1.86,3.98];}
-  if(place==='sunset'){const st=useIsland.getState();if(st.sandPhase>0){scripted=true;eye=mobile?[-7,4.6,12.6]:[-7,3.9,11.7];target=[-7,1,9.15];}else if(st.sitting){scripted=true;eye=[-6.4,2.08,7.86];target=[-13.2,2.4,13.6];}}
+  if(place==='sunset'){const st=useIsland.getState();if(st.sandPhase>0){scripted=true;eye=mobile?[-7,6.8,13.8]:[-7,6.2,12.8];target=[-7,1,8.95];}else if(st.sitting){scripted=true;eye=[-6.4,2.08,7.86];target=[-13.2,2.4,13.6];}}
   // Sunrise hill: the walk up is scripted below; at the top the camera turns east, where the sun will rise.
   if(place==='sunrise'){if(step===0){eye=[-4.3,5.0,-2.4];target=[-1.0,2.6,-7.0];scripted=true;}else if(step>=3){eye=SUMMIT[0];target=SUMMIT[1];scripted=true;}}
   if(object&&object!=='camera'&&object!=='settings'){
@@ -225,17 +235,25 @@ function Cameras(){
   else{walk.current=null;glide(GLIDE);c.setLookAt(...eye,...target,!reduced);}
  }else island();
  idle.current=performance.now();
- },[place,object,intro,reset,reduced,mobile,step,view,started,weather,party,fireworks,sitting,sandPhase>0,closeUp]);
+ },[place,object,intro,reset,reduced,mobile,step,view,started,weather,party,fireworks,sitting,sandPhase>0,closeUp,cloudView]);
  // A scripted glide ends at rest; from then on the camera answers her hands quickly.
  useEffect(()=>{const c=controls.current;if(!c)return;const rest=()=>{flying.current=false;c.smoothTime=HAND;};const take=()=>{flying.current=false;c.smoothTime=HAND;};
   c.addEventListener('rest',rest);c.addEventListener('controlstart',take);return()=>{c.removeEventListener('rest',rest);c.removeEventListener('controlstart',take);};},[]);
+ // A second outward scroll at the scene boundary returns to the island instead of feeling stuck.
+ useEffect(()=>{const el=gl.domElement;let outward=0;let last=0;
+  const leave=(e:WheelEvent)=>{const s=useIsland.getState(),c=controls.current;if(!c||!s.place||s.object||s.place==='celebration'||s.sunriseStep===1||flying.current){outward=0;return;}
+   if(e.deltaY<=0||c.distance<c.maxDistance*.97){outward=0;return;}
+   const now=performance.now();if(now-last>650)outward=0;last=now;outward+=Math.min(e.deltaY,120);
+   if(outward>=180){outward=0;s.travel(null);}
+  };el.addEventListener('wheel',leave,{passive:true});return()=>el.removeEventListener('wheel',leave);
+ },[gl]);
  // A trackpad pinch arrives as a wheel event with ctrlKey, which camera-controls would turn into a lens zoom.
  // Hand it on as an ordinary wheel, so pinching moves the camera like scrolling does (toward the fingers).
  useEffect(()=>{const el=gl.domElement;const pinch=(e:WheelEvent)=>{if(!e.ctrlKey||!e.isTrusted)return;e.preventDefault();e.stopImmediatePropagation();
   el.dispatchEvent(new WheelEvent('wheel',{deltaX:e.deltaX,deltaY:e.deltaY*3,deltaMode:e.deltaMode,clientX:e.clientX,clientY:e.clientY,bubbles:true,cancelable:true}));};
   el.addEventListener('wheel',pinch,{capture:true,passive:false});return()=>el.removeEventListener('wheel',pinch,{capture:true});},[gl]);
  // Blowing out the candles turns the camera to the fireworks for a while, then back to the table.
- useEffect(()=>{if(party===5&&lastParty.current===4){setFireworks(true);const t=setTimeout(()=>setFireworks(false),reduced?1500:7800);lastParty.current=party;return()=>clearTimeout(t);}lastParty.current=party;},[party]);
+ useEffect(()=>{if(party===5&&lastParty.current===4){setFireworks(true);const t=setTimeout(()=>setFireworks(false),reduced?1500:TIMING.fireworks*1000);lastParty.current=party;return()=>clearTimeout(t);}lastParty.current=party;},[party]);
  // Development only: pose the camera from scripts for close-up review.
  useEffect(()=>{if(!import.meta.env.DEV)return;const go=(e:Event)=>{const d=(e as CustomEvent<{eye:number[];target:number[]}>).detail;const c=controls.current;if(!c)return;c.setBoundary();c.setFocalOffset(0,0,0,false);c.setLookAt(d.eye[0],d.eye[1],d.eye[2],d.target[0],d.target[1],d.target[2],false);debugPose.current=true;};window.addEventListener('island-debug-camera',go);return()=>window.removeEventListener('island-debug-camera',go);},[]);
  const debugPose=useRef(false);
@@ -245,7 +263,7 @@ function Cameras(){
  // (filtered, so the bends never swing the view), turning to the sea where the sun will rise over the last stretch.
  const trail=useMemo(()=>new THREE.CatmullRomCurve3([...[[-3.7,-4.35],...TRAIL.slice(0,4),[2.2,-8.05]].map(([x,z])=>new THREE.Vector3(x,hillHeight(x,z)+1.55,z)),new THREE.Vector3(...SUMMIT[0])],false,'centripetal',.5),[]);
  useFrame((_,dt)=>{const w=walk.current,c=controls.current;if(!w||!c)return;const s=useIsland.getState();if(s.place!=='sunrise'){walk.current=null;return;}
-  const p=Math.min(1,(performance.now()-w.t0)/11000),e=.5-.5*Math.cos(Math.PI*p),t=w.a+(w.b-w.a)*e;
+  const p=Math.min(1,(performance.now()-w.t0)/(TIMING.hillWalk*1000)),e=.5-.5*Math.cos(Math.PI*p),t=w.a+(w.b-w.a)*e;
   const pos=trail.getPointAt(t),ahead=trail.getPointAt(Math.min(1,t+.28));ahead.y=pos.y-.15;
   const turn=THREE.MathUtils.smoothstep(t,.35,.95);ahead.lerp(_summit.set(...SUMMIT[1]),turn);
   w.gaze.lerp(ahead,1-Math.exp(-Math.min(dt,.1)*1.3));
@@ -256,7 +274,7 @@ function Cameras(){
  const rise=useRef<{t0:number;eye:THREE.Vector3;look:THREE.Vector3}|null>(null);
  useFrame(()=>{const r=rise.current,c=controls.current;if(!r||!c)return;if(!useIsland.getState().intro){rise.current=null;return;}
   const pose=islandPose(view,view.distance);
-  const t=Math.min(1,(performance.now()-r.t0)/6800),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,lift=Math.sin(Math.PI*e)*2.4;
+  const t=Math.min(1,(performance.now()-r.t0)/(TIMING.intro*1000)),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2,lift=Math.sin(Math.PI*e)*2.4;
   const eye=r.eye.clone().lerp(pose.eyeShifted,e);eye.y+=lift;const look=r.look.clone().lerp(pose.look,e);
   c.setLookAt(eye.x,eye.y,eye.z,look.x,look.y,look.z,false);
   if(t>=1){rise.current=null;c.setLookAt(pose.eye.x,pose.eye.y,pose.eye.z,...CENTRE,false);c.setFocalOffset(0,-pose.offset,0,false);c.smoothTime=HAND;flying.current=false;lastD.current=0;useIsland.getState().finishIntro();}});
@@ -275,12 +293,13 @@ function Cameras(){
  useFrame((_,dt)=>{const c=controls.current;const s=useIsland.getState();if(!c||!s.started||s.intro||s.place||s.object||reduced)return;
   // Screensaver drift: after a quiet moment the island turns slowly on its own.
   const quiet=(performance.now()-idle.current)/1000;if(quiet>9)c.rotate(Math.min(dt,.05)*.035*Math.min(1,(quiet-9)/4),0,false);});
- const islandMode=!place;
+ const islandMode=!place;const inside=place==='cloud'&&cloudView==='inside';
  // Behind the viewfinder she can also slide the view and come closer, to find her own angle.
  const photo=object==='camera';
- return <CameraControls ref={controls} makeDefault draggingSmoothTime={.12} minDistance={islandMode?view.distance*.33:photo?1.2:3} maxDistance={islandMode?view.distance*1.6:photo?reach*1.4:reach} minPolarAngle={islandMode?18*DEG:.3} maxPolarAngle={islandMode?Math.PI*.49:Math.PI*.495} azimuthRotateSpeed={mobile?.5:.62} polarRotateSpeed={islandMode?(mobile?.42:.5):.4} dollySpeed={mobile?.6:.55} truckSpeed={islandMode?1.1:photo?.8:0} dollyToCursor={islandMode} enabled={!intro}/>;
+ return <CameraControls ref={controls} makeDefault draggingSmoothTime={.12} minDistance={inside?2.8:islandMode?view.distance*.33:place==='home'?3.5:photo?1.8:3} maxDistance={inside?3.2:islandMode?view.distance*1.6:photo?reach*1.4:reach} minPolarAngle={inside?1.25:islandMode?18*DEG:.3} maxPolarAngle={inside?1.65:islandMode?Math.PI*.49:place==='home'?Math.PI*.43:Math.PI*.495} azimuthRotateSpeed={mobile?.5:.62} polarRotateSpeed={islandMode?(mobile?.42:.5):.4} dollySpeed={mobile?.6:.55} truckSpeed={islandMode?1.1:photo?.8:0} dollyToCursor={islandMode} enabled={!intro&&(!object||photo)}/>
 }
 // Place markers follow their buildings on screen; only re-placed when the view actually changed.
+function Navigation(){const inside=useIsland(s=>s.place==='cloud'&&s.cloudView==='inside');return inside?<LibraryView/>:<Cameras/>;}
 function PlaceMarkers(){
  const {camera,size}=useThree();const els=useRef<Record<string,HTMLButtonElement|null>>({});const seen=useMemo(()=>new THREE.Matrix4(),[]);const was=useRef('');const v=useMemo(()=>new THREE.Vector3(),[]);
  useFrame(()=>{const s=useIsland.getState();if(!s.started||s.intro||s.place)return;let fresh=false;
@@ -360,7 +379,6 @@ function Effects({mobile}:{mobile:boolean}){
  return <EffectComposer multisampling={mobile?0:4}>
   <Bloom ref={bloom} mipmapBlur radius={.7} intensity={.3} luminanceThreshold={1} luminanceSmoothing={.25}/>
   <ToneMapping mode={ToneMappingMode.NEUTRAL}/>
-  <Noise premultiply opacity={.05} blendFunction={BlendFunction.SOFT_LIGHT}/>
   {mobile?<FXAA/>:<></>}
  </EffectComposer>;
 }
@@ -372,7 +390,7 @@ function Diagnostics(){const {gl,scene,camera,advance}=useThree();const count=us
  useEffect(()=>{gl.info.autoReset=false;return()=>{gl.info.autoReset=true;};},[gl]);
  useFrame(()=>{count.current.calls=gl.info.render.calls;count.current.triangles=gl.info.render.triangles;gl.info.reset();},2);
  useEffect(()=>{
- const win=window as any;win.render_game_to_text=()=>{const s=useIsland.getState();return JSON.stringify({mode:!s.started?'arrival':s.intro?'intro':s.object?'object':s.place?'place':'island',place:s.place,object:s.object,core:s.save.core,endingUnlocked:s.save.endingUnlocked,endingSeen:s.save.endingSeen,letterRead:s.save.letterRead,time:s.save.time,mood:atmosphere.mood,weather:s.weather,sunriseStep:s.sunriseStep,bouquet:s.save.home.bouquet,wallPhotos:s.save.home.wallPhotos,shots:s.save.shots.length,music:musicState(),fps:count.current.fps,quality:document.documentElement.dataset.quality??'full',drawCalls:count.current.calls,triangles:count.current.triangles,coordinateSystem:'Y up; island center (0,1,0); sea at Y=-0.08',camera:camera.position.toArray(),availablePlaces:Object.keys(places).filter(p=>p!=='celebration'||s.save.endingUnlocked)});};
+ const win=window as any;win.render_game_to_text=()=>{const s=useIsland.getState();return JSON.stringify({mode:!s.started?'arrival':s.intro?'intro':s.object?'object':s.place?'place':'island',place:s.place,object:s.object,shimmer:{...shimmerState},core:s.save.core,endingUnlocked:s.save.endingUnlocked,endingSeen:s.save.endingSeen,letterRead:s.save.letterRead,time:s.save.time,mood:atmosphere.mood,weather:s.weather,cloudView:s.cloudView,rainbowUntil:s.rainbowUntil,sunriseStep:s.sunriseStep,bouquet:s.save.home.bouquet,wallPhotos:s.save.home.wallPhotos,shots:s.save.shots.length,music:musicState(),fps:count.current.fps,quality:document.documentElement.dataset.quality??'full',drawCalls:count.current.calls,triangles:count.current.triangles,coordinateSystem:'Y up; island center (0,1,0); sea at Y=-0.08',camera:camera.position.toArray(),availablePlaces:Object.keys(places)});};
  win.advanceTime=async(ms:number)=>{useIsland.getState().tick(ms/1000);gl.render(scene,camera);};
  if(import.meta.env.DEV||new URLSearchParams(location.search).has('perf'))win.__island={store:useIsland,camera,renderer:gl,scene,atmosphere,__step:win.advanceTime};
  return()=>{delete win.render_game_to_text;delete win.advanceTime;delete win.__island;};
@@ -380,9 +398,9 @@ function Diagnostics(){const {gl,scene,camera,advance}=useThree();const count=us
 // Safety net for slower devices: when the island runs slowly, first lower the resolution a step at a time; only at
 // the lowest step drop post-processing (the renderer's own neutral tone mapping keeps colours close). `?lite` forces it.
 function Quality({lite,onLite,max}:{lite:boolean;onLite:()=>void;max:number}){
- const {gl,setDpr}=useThree();const span=useRef({t:0,frames:0});const dpr=useRef(max);
+ const {gl,setDpr}=useThree();const span=useRef({t:0,frames:0,ready:performance.now()+8000});const dpr=useRef(max);
  useEffect(()=>{gl.toneMapping=lite?THREE.NeutralToneMapping:THREE.NoToneMapping;document.documentElement.dataset.quality=lite?'lite':'full';},[gl,lite]);
- useFrame((_,dt)=>{const s=useIsland.getState();const w=span.current;if(!s.started||s.intro||s.object||document.hidden){w.t=0;w.frames=0;return;}
+ useFrame((_,dt)=>{const s=useIsland.getState();const w=span.current;if(!s.started||s.intro||s.object||document.hidden||performance.now()<w.ready){w.t=0;w.frames=0;return;}
   w.t+=Math.min(dt,.25);w.frames++;if(w.t<2.5)return;const fps=w.frames/w.t;w.t=0;w.frames=0;
   if(fps<42&&dpr.current>1.01){dpr.current=Math.max(1,dpr.current-.2);setDpr(dpr.current);}else if(fps<30&&!lite)onLite();});
  return null;
@@ -407,10 +425,10 @@ export default function World(){
  useEffect(()=>{const fn=()=>setVisible(!document.hidden);document.addEventListener('visibilitychange',fn);return()=>document.removeEventListener('visibilitychange',fn);},[]);
  // Phones start as sharp as desktops; the adaptive quality steps down if one cannot keep up.
  const maxDpr=Math.min(devicePixelRatio,mobile?1.75:1.6);
- return <Canvas frameloop={visible&&!studio?(covered?'demand':'always'):'never'} shadows={{type:THREE.PCFSoftShadowMap}} dpr={lite?1:[1,maxDpr]} camera={{position:[25,20,34],fov:40,near:.1,far:900}} gl={{antialias:false,alpha:false,preserveDrawingBuffer:true,powerPreference:'high-performance',stencil:false}} onCreated={({gl})=>{gl.toneMapping=THREE.NoToneMapping;}}>
+ return <Canvas frameloop={visible&&!studio?(covered?'demand':'always'):'never'} shadows={{type:THREE.PCFSoftShadowMap}} dpr={lite?1:[1,maxDpr]} camera={{position:[25,20,34],fov:40,near:.1,far:900}} gl={{antialias:true,alpha:false,preserveDrawingBuffer:true,powerPreference:'high-performance',stencil:false}} onCreated={({gl})=>{gl.toneMapping=THREE.NoToneMapping;}}>
   <color attach="background" args={['#e9e1c8']}/><fog attach="fog" args={['#e9e1c8',90,260]}/>
   <Atmosphere/><Wind/><PaintedSky/><Lighting/><Ocean reflect={!lite&&!new URLSearchParams(location.search).has('noreflect')}/>
   <Suspense fallback={null}>{['terrain','town','home','park','coast','hill'].map(name=><Region key={name} name={name}/>)}<PaintedClouds/><PlaceMarkers/><Objects/><Life/><SandMesh/><Pokes/><Moments/><Warmup lite={lite}/></Suspense>
-  <Cameras/><PinCanvas/><SkyTaps/><Diagnostics/><Breathe on={covered&&visible&&!studio}/><Quality lite={lite} max={maxDpr} onLite={()=>setLite(true)}/>{lite?<PlainRender/>:<Effects mobile={mobile}/>}
+  <Navigation/><PinCanvas/><SkyTaps/><Diagnostics/><Breathe on={covered&&visible&&!studio}/><Quality lite={lite} max={maxDpr} onLite={()=>setLite(true)}/>{lite?<PlainRender/>:<Effects mobile={mobile}/>}
  </Canvas>;
 }

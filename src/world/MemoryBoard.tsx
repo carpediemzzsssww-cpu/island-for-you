@@ -1,12 +1,12 @@
 import {useEffect,useMemo,useState} from 'react';
 import * as THREE from 'three';
 import {useIsland} from '../store';
-import {flowers,menu,photos,portraits,coreMemories,places,today} from '../content';
+import {flowers,menu,photos,scenery,coreMemories,places,today} from '../content';
 
 // A cork board above Home's desk: the five things she brings back are pinned here as they happen, so the house
 // itself shows how far she has come (家本身就是进度条). Empty places wait with a pencilled hint.
 
-const FONT='"Noto Serif SC","Songti SC","STSong",serif';
+const FONT='"Island Song","Songti SC","STSong",serif';
 function useImage(src:string){const [img,setImg]=useState<HTMLImageElement|null>(null);useEffect(()=>{const i=new Image();i.onload=()=>setImg(i);i.src=src;},[src]);return img;}
 function texture(w:number,h:number,draw:(g:CanvasRenderingContext2D)=>void){const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d')!;draw(g);const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=4;return t;}
 function cover(g:CanvasRenderingContext2D,img:HTMLImageElement,x:number,y:number,w:number,h:number){const r=Math.max(w/img.width,h/img.height),sw=w/r,sh=h/r;g.drawImage(img,(img.width-sw)/2,(img.height-sh)/2,sw,sh,x,y,w,h);}
@@ -14,7 +14,7 @@ const cork=()=>texture(512,352,g=>{g.fillStyle='#c79a6b';g.fillRect(0,0,512,352)
 function emptyCard(label:string,hint:string){return texture(256,192,g=>{g.clearRect(0,0,256,192);g.setLineDash([9,7]);g.strokeStyle='rgba(255,247,232,.75)';g.lineWidth=3;g.beginPath();g.roundRect(10,10,236,172,14);g.stroke();
  g.fillStyle='rgba(255,247,232,.92)';g.textAlign='center';g.font=`600 30px ${FONT}`;g.fillText(label,128,86);g.font=`22px ${FONT}`;g.fillStyle='rgba(255,247,232,.75)';g.fillText(hint,128,128);});}
 export default function MemoryBoard({position,rotationY=Math.PI/2,interactive=true}:{position:[number,number,number];rotationY?:number;interactive?:boolean}){
- const s=useIsland();const c=s.save.core;const sunsetPhoto=photos.find(p=>p.category==='sunset');const portrait=portraits[0]??photos[0];
+ const s=useIsland();const c=s.save.core;const sunsetPhoto=photos.find(p=>p.category==='sunset');const portrait=scenery[0]??photos[0];
  const sunsetImg=useImage(sunsetPhoto?.thumbnail??portrait.thumbnail);const portraitImg=useImage(portrait.thumbnail);
  const board=useMemo(cork,[]);
  const bouquetNames=(s.save.home.bouquet?.flowers??[]).map(id=>flowers.find(f=>f.id===id)?.name).filter(Boolean).join(' · ');

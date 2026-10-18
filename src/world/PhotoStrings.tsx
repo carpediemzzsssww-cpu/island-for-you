@@ -41,6 +41,10 @@ export default function PhotoStrings({interactive}:{interactive:boolean}){
  const open=(i:number)=>(e:ThreeEvent<MouseEvent>)=>{const s=useIsland.getState();if(!s.started||s.object||e.delta>8)return;e.stopPropagation();(window as unknown as {__wallPhoto?:string}).__wallPhoto=shownRef.current[i];s.open('wall');};
  const hover={onPointerOver:(e:ThreeEvent<PointerEvent>)=>{if(e.pointerType==='mouse'){e.stopPropagation();document.body.style.cursor='pointer';}},onPointerOut:()=>{document.body.style.cursor='';}};
  return <group>
+  {/* One generous wall target also catches the spaces between the little prints. */}
+  {interactive&&<mesh name="photo-wall-hit-area" position={[(X0+X1)/2,3.03,Z+.016]} onClick={open(0)} {...hover}>
+   <planeGeometry args={[X1-X0+.45,1.65]}/><meshBasicMaterial transparent opacity={0} depthWrite={false} side={THREE.DoubleSide}/>
+  </mesh>}
   {strings.map((g,i)=><mesh key={i} geometry={g}><meshStandardMaterial color="#c9b392" roughness={.9}/></mesh>)}
   {bulbs.map((p,i)=><mesh key={i} position={p} material={glow}><sphereGeometry args={[.017,8,6]}/></mesh>)}
   {SLOTS.map((sl,i)=><group key={i} position={[sl.x,sl.y,Z+.02]} rotation={[0,0,sl.tilt]} onClick={interactive?open(i):undefined} {...(interactive?hover:{})}>

@@ -10,7 +10,8 @@
     "models": "blender --background --python scripts/build_island.py",
     "test": "node --import tsx --test tests/*.test.ts",
     "photos": "python3 scripts/photos.py",
-    "music": "node scripts/render_music.mjs"
+    "music": "node scripts/render_music.mjs",
+    "build:minitool": "node scripts/minitool/models.mjs && vite build --config vite.minitool.config.ts && node scripts/minitool/package.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -31,6 +32,8 @@
     "playwright": "^1.63.0",
     "tsx": "^4.20.5",
     "typescript": "~5.9.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "draco3d": "1.5.7",
+    "meshoptimizer": "0.22.0"
   }
 }

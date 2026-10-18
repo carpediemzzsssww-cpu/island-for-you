@@ -44,3 +44,6 @@ __MACOSX/
 .vscode/
 # iCloud duplicates such as "node_modules 2"
 node_modules*
+
+# Reproducible offline model payload
+public-minitool/

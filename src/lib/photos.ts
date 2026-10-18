@@ -11,5 +11,5 @@ export async function captureWorld(frame:DOMRect):Promise<Blob>{
  const crop={x:Math.max(0,(frame.left-rect.left)*sx),y:Math.max(0,(frame.top-rect.top)*sy),w:Math.min(source.width,frame.width*sx),h:Math.min(source.height,frame.height*sy)};
  const result=document.createElement('canvas');const ratio=Math.min(1,1280/Math.max(crop.w,crop.h));result.width=Math.round(crop.w*ratio);result.height=Math.round(crop.h*ratio);
  result.getContext('2d')!.drawImage(source,crop.x,crop.y,crop.w,crop.h,0,0,result.width,result.height);
- return new Promise((resolve,reject)=>result.toBlob(blob=>blob?resolve(blob):reject(Error('无法冲洗照片')),'image/webp',.86));
+ return new Promise((resolve,reject)=>result.toBlob(blob=>blob?resolve(blob):reject(Error('无法冲洗照片')),'image/png'));
 }

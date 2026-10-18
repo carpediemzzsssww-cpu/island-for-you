@@ -1,13 +1,15 @@
 import {useEffect,useMemo,useState} from 'react';
+import {createPortal} from 'react-dom';
 import type {CSSProperties} from 'react';
 import {ArrowRight,Camera,ChevronLeft,ChevronRight,CloudSun,Flower2,House,Mail,PawPrint,Rainbow,Soup,Sparkles,Sun,Sunrise,Sunset,TreePalm,Waves} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {useIsland} from '../store';
-import {photos,portraits,flowers,menu,places,coreMemories,byCategory,today} from '../content';
+import {photos,scenery,flowers,menu,places,coreMemories,byCategory,today} from '../content';
 import type {PlaceId} from '../content';
-import type {WorldSave} from '../lib/state';
+import type {Shot,WorldSave} from '../lib/state';
 import {paperSound} from '../lib/audio';
 import {Artifact,Polaroid,ShotImage} from './paper';
+import PhotoActions from './PhotoActions';
 
 // The journal is a real notebook: a cloth cover, dotted paper, index tabs on the edge, washi tape and stickers.
 // Its first spread is the list of five things to do on the island; ticking all five sets the table in the square.
@@ -17,7 +19,6 @@ const PAGES=[{id:'memories',name:'事件'},{id:'map',name:'地图'},{id:'shots',
 type Page=typeof PAGES[number]['id'];
 let lastPage:Page='memories';
 /** The five cameras on the island, in the order they appear in the journal. */
-const CAMERA_SPOTS:PlaceId[]=['home','town','park','sunset','sunrise'];
 const STICKER:Record<string,{icon:LucideIcon;tint:string}>={homeSeen:{icon:House,tint:'#e9b4a7'},flowerMade:{icon:Flower2,tint:'#eea7bb'},dinerSeen:{icon:Soup,tint:'#f0c983'},sunsetSeen:{icon:Sunset,tint:'#f2b08f'},sunriseReached:{icon:Sunrise,tint:'#f4d27e'},
  pandaFound:{icon:PawPrint,tint:'#d9a07a'},parkPlayed:{icon:TreePalm,tint:'#a9cf9b'},sandWritten:{icon:Waves,tint:'#9fcfd0'},cloudscapeSunset:{icon:CloudSun,tint:'#b9c4e6'},firstPhoto:{icon:Camera,tint:'#b7cdbd'},greenFlash:{icon:Sparkles,tint:'#a8d9b0'},firstLight:{icon:Sun,tint:'#f5cf7a'},rainbow:{icon:Rainbow,tint:'#c4b6e8'},endingSeen:{icon:Sparkles,tint:'#f3b7c6'},letterRead:{icon:Mail,tint:'#e7c4a8'}};
 const names=(ids:string[],list:{id:string;name:string}[],sep:string)=>ids.map(id=>list.find(f=>f.id===id)?.name).filter(Boolean).join(sep);
@@ -31,7 +32,7 @@ const DIARY:Record<string,{title:string;note:(s:WorldSave)=>string}>={
  parkPlayed:{title:'无所事事也很好',note:()=>'在公园浪费了一点时间。'},
  sandWritten:{title:'写给大海的话',note:()=>'写下的话，大海听见了。'},
  cloudscapeSunset:{title:'雨停之后',note:()=>'大雨过后的天空好漂亮。'},
- greenFlash:{title:'看到了绿光',note:()=>'太阳落进海里的那一秒。'},
+ greenFlash:{title:'看到了绿光',note:()=>'来自凡尔纳的小说与侯麦的电影《绿光》。'},
  firstLight:{title:'第一缕光',note:()=>'天亮的那一瞬，被你接住了。'},
  rainbow:{title:'雨后的彩虹',note:()=>'雨停以后，它真的出现了。'},
  firstPhoto:{title:'第一张拍立得',note:()=>'这一次，你来拍下这个世界吧。'},
@@ -76,19 +77,19 @@ function IslandMap(){const s=useIsland();const water=useMemo(()=>coast('water'),
   <ellipse cx={mapX(-18)} cy={mapY(-8)} rx="29" ry="18" fill="#f0e2c2" stroke="#b9a37f" strokeWidth="1"/>
   <g transform="translate(330 222)" fill="#8e9d86"><path d="M0-15l3.5 11h-7z"/><text y="11" fontSize="8" textAnchor="middle" letterSpacing="1">N</text></g>
   <text x="258" y="276" fontSize="9" fill="#7e9486" letterSpacing="4">THE SEA</text>
- </svg>{Object.entries(places).filter(([id])=>id!=='celebration'||s.save.endingUnlocked).map(([id,p])=>{const x=50+p.position[0]*2.8,y=48+p.position[2]*3;return <button key={id} className={`journal-map-pin ${id==='celebration'?'special':''}`} style={{left:`${x}%`,top:`${y}%`}} onClick={()=>s.travel(id as PlaceId)}><i/>{p.name}</button>;})}</div>;}
+ </svg>{Object.entries(places).map(([id,p])=>{const x=50+p.position[0]*2.8,y=48+p.position[2]*3;return <button key={id} className={`journal-map-pin ${id==='celebration'?'special':''}`} style={{left:`${x}%`,top:`${y}%`}} onClick={()=>s.travel(id as PlaceId)}><i/>{p.name}</button>;})}</div>;}
 
 function ThingsSpread({fresh}:{fresh:Set<string>}){
- const s=useIsland();const save=s.save;const all=coreMemories.every(m=>save.core[m.key]);
+ const s=useIsland();const save=s.save;
  const at=(id:string)=>save.log.find(l=>l.id===id)?.at;
  // Diary: things that happened before the diary existed first (no time), then everything in the order it happened.
- const diary=Object.keys(DIARY).filter(id=>happened[id](save)).map(id=>({id,at:at(id)??0})).sort((a,b)=>a.at-b.at);
+ const diary=Object.keys(DIARY).filter(id=>id!=='letterRead'&&happened[id](save)).map(id=>({id,at:at(id)??0})).sort((a,b)=>a.at-b.at);
  return <>
   <div className="jb-page jb-left">
    <Tape className="tape-corner"/>
    <h2 className="jb-title"><span>记得这些小事</span></h2>
    <p className="jb-date">{today.month} · {today.day} · 晴，有海风</p>
-   <p className="jb-lead">今天要做的五件小事：</p>
+   <p className="jb-lead">岛上可以做的几件小事：</p>
    <ol className="jb-checklist">{coreMemories.map((m,i)=>{const ok=save.core[m.key];const t=at(m.key);
     return <li key={m.key} className={`${ok?'done':''} ${fresh.has(m.key)?'fresh':''}`} style={{'--i':i} as CSSProperties}>
      <button onClick={()=>s.travel(m.place as PlaceId)} aria-label={`${m.name}：${ok?'已经完成':'还没完成'}，前往${places[m.place as PlaceId].name}`}>
@@ -97,16 +98,16 @@ function ThingsSpread({fresh}:{fresh:Set<string>}){
       {ok?<span className="jb-when">{t?when(t):'做到了'}</span>:<span className="jb-hint">{m.hint}</span>}
       {ok&&<span className="jb-stamp"><Sticker id={m.key} size={15}/></span>}
      </button></li>;})}</ol>
-   {all&&!save.endingSeen?<div className="jb-ticket"><span className="jb-ticket-head">ADMIT ONE · {today.month}/{today.day}</span><h3>岛心的长桌</h3><p>五件小事都打上勾了。今晚，那里有一张为你留的椅子。</p><button className="ink-button" onClick={()=>s.travel('celebration')}>去岛心看看 <ArrowRight size={16}/></button></div>
-   :save.endingSeen?<p className="jb-pencil">长桌上的蜡烛，已经吹过了。{save.letterRead?'信也读过了。':'还有一封信，在家里等你。'}</p>
-   :<p className="jb-pencil">五件都打上勾，岛心会为你摆一张长桌。</p>}
+   {!save.endingSeen?<div className="jb-ticket"><span className="jb-ticket-head">ADMIT ONE · {today.month}/{today.day}</span><h3>岛心的长桌</h3><p>想庆祝的时候，岛心的长桌一直留着。</p><button className="ink-button" onClick={()=>s.travel('celebration')}>去岛心看看 <ArrowRight size={16}/></button></div>
+   :save.endingSeen?<p className="jb-pencil">长桌上的蜡烛，已经吹过了。下一次，也可以为别的好事再亮起来。</p>
+   :<p className="jb-pencil">想去哪儿，就去哪儿。</p>}
    <span className="jb-folio">— 1 —</span>
   </div>
   <div className="jb-page jb-right">
    <h2 className="jb-title small"><span>这些日子</span></h2>
    {diary.length?<div className="jb-diary">{diary.map(d=><article key={d.id}><Sticker id={d.id}/><div>{d.at>0&&<time>{when(d.at)}</time>}<h3>{DIARY[d.id].title}</h3><p>{DIARY[d.id].note(save)}</p></div></article>)}</div>
    :<p className="jb-pencil empty">先出去走走，<br/>这本手账会慢慢越来越厚。</p>}
-   {save.letterRead&&<p className="jb-pencil forever">岛上的灯会一直亮着。<br/>花朵还在。</p>}
+   {save.endingSeen&&<p className="jb-pencil forever">岛上的灯会一直亮着。<br/>花朵还在。</p>}
    <span className="jb-folio">— 2 —</span>
   </div>
  </>;
@@ -117,27 +118,33 @@ function MapSpread(){
   <div className="jb-page jb-left"><h2 className="jb-title"><span>岛上慢行指南</span></h2><p className="jb-date">点一个地名走过去</p><IslandMap/><span className="jb-folio">— 3 —</span></div>
   <div className="jb-page jb-right">
    <h2 className="jb-title small"><span>收集的照片</span></h2>
-   <div className="jb-photo"><Tape className="tape-top"/>{p?<Polaroid src={p.src} caption={p.caption}/>:<Polaroid src={byCategory('journal')[0]?.src??portraits[0]?.src??photos[0].src} caption="认真保存生活的人。"/>}</div>
+   <div className="jb-photo"><Tape className="tape-top"/>{p?<Polaroid src={p.src} caption={p.caption}/>:<Polaroid src={byCategory('journal')[0]?.src??scenery[0].src} caption="认真保存生活的人。"/>}</div>
    {collection.length>1?<div className="paper-pagination"><button aria-label="上一张" onClick={()=>setIndex((index-1+collection.length)%collection.length)}><ChevronLeft size={18}/></button><span>{index%collection.length+1} / {collection.length}</span><button aria-label="下一张" onClick={()=>setIndex(index+1)}><ChevronRight size={18}/></button></div>
    :<p className="jb-pencil">照片墙和日落明信片里看过的照片，会收在这里。</p>}
    <span className="jb-folio">— 4 —</span>
   </div>
  </>;
 }
-/** One frame per camera, in the shape it was taken (landscape or portrait), taped to the page. */
-function Frame({id,i}:{id:PlaceId;i:number}){const s=useIsland();const shot=s.save.shots.find(p=>p.place===id);const tilt={'--r':`${[-2.5,1.8,-1.2,2.4,-1.8][i]}deg`} as CSSProperties;
- return shot?<figure className={`polaroid shot-${shot.orientation}`} style={{...tilt,'--aspect':String(shot.aspect??(shot.orientation==='portrait'?3/4:4/3))} as CSSProperties}><Tape className="tape-top"/><ShotImage id={shot.id}/><span>{places[id].name}</span></figure>
- :<button className="polaroid empty-shot" onClick={()=>s.travel(id)} style={tilt} aria-label={`${places[id].name}的相机还没拍，去看看`}><Camera size={20} strokeWidth={1.2}/><span>{places[id].name}<small>还没拍</small></span></button>;}
+/** The album keeps every photo, newest first, with no empty collection slots. */
+function Frame({shot,i}:{shot:Shot;i:number}){
+ const [large,setLarge]=useState(false);
+ useEffect(()=>{if(!large)return;const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){e.stopImmediatePropagation();setLarge(false);}};window.addEventListener('keydown',close,true);return()=>window.removeEventListener('keydown',close,true);},[large]);
+ return <><figure className={`polaroid shot-${shot.orientation}`} style={{'--r':`${i%2?1.8:-2}deg`,'--aspect':String(shot.aspect??(shot.orientation==='portrait'?3/4:4/3))} as CSSProperties}>
+  <Tape className="tape-top"/><button className="album-photo" onClick={()=>setLarge(true)} aria-label={`放大${places[shot.place].name}的照片`}><ShotImage id={shot.id}/></button><span>{places[shot.place].name}</span><PhotoActions id={shot.id}/>
+ </figure>{large&&createPortal(<div className="album-lightbox" role="dialog" aria-modal="true" aria-label="查看照片"><button className="album-lightbox-shade" aria-label="收起照片" onClick={()=>setLarge(false)}/><div className="album-lightbox-paper"><ShotImage id={shot.id}/><PhotoActions id={shot.id}/><button className="quiet-link" onClick={()=>setLarge(false)}>收起照片</button></div></div>,document.body)}</>;
+}
 function ShotsSpread(){
+ const s=useIsland(),[page,setPage]=useState(0);const all=[...s.save.shots].reverse(),pages=Math.max(1,Math.ceil(all.length/4)),slice=all.slice(page*4,page*4+4);
  return <>
   <div className="jb-page jb-left">
    <h2 className="jb-title"><span>你眼睛里的小岛</span></h2>
-   <p className="jb-lead">岛上有几台相机，你可以拍下这个世界。</p>
-   <div className="jb-shots">{CAMERA_SPOTS.slice(0,2).map((id,i)=><Frame key={id} id={id} i={i}/>)}</div>
+   <p className="jb-lead">每次按下快门，都收在这里。喜欢的照片可以保存带走。</p>
+   {all.length?<div className="jb-shots">{slice.slice(0,2).map((shot,i)=><Frame key={shot.id} shot={shot} i={i}/>)}</div>:<div className="album-empty"><Camera size={28} strokeWidth={1.2}/><p>还没有拍照。去喜欢的地方，按下「拍张照」。</p><button className="ink-button" onClick={()=>s.open(null)}>继续逛小岛 <ArrowRight size={15}/></button></div>}
    <span className="jb-folio">— 5 —</span>
   </div>
   <div className="jb-page jb-right">
-   <div className="jb-shots">{CAMERA_SPOTS.slice(2).map((id,i)=><Frame key={id} id={id} i={i+2}/>)}</div>
+   <div className="jb-shots">{slice.slice(2).map((shot,i)=><Frame key={shot.id} shot={shot} i={i+2}/>)}</div>
+   {all.length>0&&<div className="album-pagination"><button aria-label="上一页照片" disabled={page===0} onClick={()=>setPage(p=>p-1)}><ChevronLeft size={18}/></button><span>{page+1} / {pages} · {all.length} 张照片</span><button aria-label="下一页照片" disabled={page>=pages-1} onClick={()=>setPage(p=>p+1)}><ChevronRight size={18}/></button></div>}
    <span className="jb-folio">— 6 —</span>
   </div>
  </>;

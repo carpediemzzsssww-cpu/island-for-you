@@ -1,0 +1,15 @@
+import {records,tracks} from '../content';
+export const trackBus=new EventTarget();
+let ctx:AudioContext|null=null,out:GainNode|null=null,timer:ReturnType<typeof setInterval>|null=null,beat=0,elapsed=0;
+let state={started:false,muted:false,hidden:false,radio:true,record:0,party:0,place:null as string|null,sunriseStep:0,night:false};
+function note(hz:number,length=.6,volume=.025,delay=0){if(!ctx||!out||state.muted||state.hidden)return;const o=ctx.createOscillator(),g=ctx.createGain(),at=ctx.currentTime+delay;o.type='sine';o.frequency.value=hz;g.gain.setValueAtTime(0,at);g.gain.linearRampToValueAtTime(volume,at+.012);g.gain.exponentialRampToValueAtTime(.0001,at+length);o.connect(g).connect(out);o.start(at);o.stop(at+length+.03);o.onended=()=>{o.disconnect();g.disconnect()}}
+function announce(){trackBus.dispatchEvent(new CustomEvent('track',{detail:tracks[records[state.record%records.length]]}))}
+function sync(){if(!ctx||!out)return;const play=state.started&&!state.muted&&!state.hidden;out.gain.setTargetAtTime(play?.65:0,ctx.currentTime,.2);if(!play){if(timer)clearInterval(timer);timer=null;void ctx.suspend();return}void ctx.resume();if(timer)return;
+ timer=setInterval(()=>{if(!state.radio)return;const scales=[[0,4,7,12,7,4,9,7],[0,2,7,9,12,7,4,2],[0,5,9,12,9,7,5,2],[0,4,9,7,12,9,4,7],[0,7,12,16,12,7,9,4]];const root=[261.63,293.66,220,246.94,196][state.record%5];const n=scales[state.record%5][beat%8];note(root*Math.pow(2,n/12),1.8,.045);if(beat%4===0){note(root/2,2.6,.03);note(root*Math.pow(2,7/12),2.2,.015,.12)}beat++;elapsed+=.75;if(elapsed>=48){elapsed=0;trackBus.dispatchEvent(new Event('ended'))}},750);
+}
+export function beginAudio(){try{if(!ctx){ctx=new AudioContext();out=ctx.createGain();out.connect(ctx.destination)}state.started=true;sync();announce()}catch{/* Audio is optional. */}}
+export function updateAudio(next:Partial<typeof state>){const prior=state.record;state={...state,...next};if(prior!==state.record){elapsed=0;beat=0;announce()}sync()}
+export function resetMusic(){state.started=false;beat=0;elapsed=0;sync()}
+export function musicState(){return{track:records[state.record%5],playing:!!timer&&state.radio,time:Math.floor(elapsed),birthday:state.party>=3?'chimes':null}}
+export const chime=()=>{note(784,.7,.045);note(1047,1,.035,.12)};
+export const paperSound=()=>note(1500,.04,.01),shutterSound=()=>{note(440,.04,.06);note(220,.045,.04,.05)},kitchen=()=>{note(220,.08,.04);note(880,.8,.03,.4)},strike=()=>note(660,.15,.03),whoosh=()=>{note(250,.3,.025);note(160,.5,.02,.1)},plop=()=>{note(600,.08,.04);note(270,.18,.025,.05)},rustle=()=>note(1800,.12,.01),bell=()=>{note(1568,1,.025);note(2093,.7,.02,.1)},knock=()=>note(180,.07,.04),horn=()=>{note(147,.9,.03);note(220,.9,.02)},wave=()=>{note(110,2,.018);note(150,1.8,.012,.5)},gullCall=()=>{note(1900,.2,.009);note(1150,.3,.008,.16)},thunder=()=>note(55,1.8,.05),sneeze=()=>note(1200,.08,.01),sparkleSound=()=>{note(1800,.35,.01);note(2200,.4,.009,.08)},pop=()=>{note(90,.4,.04);note(160,.2,.018,.1)};

@@ -1,43 +1,31 @@
-"""Download licensed (SIL Open Font License), self-hosted font subsets for the current UI characters.
-
-island-serif: Noto Serif SC, every heading and line of text.
-The journal's handwriting: island-hand (Long Cang) for its titles and tabs, island-hand-body (LXGW WenKai, clearer)
-for its sentences, island-hand-latin (Caveat) for dates and numbers. Long Cang and LXGW WenKai only carry the
-characters the journal can show (src/ui/Journal.tsx and src/content.ts).
-
-LXGW WenKai is subset locally from its release font (cached in art-source/fonts, not in git), which needs fontTools:
-  python3.11 -m venv /tmp/fontenv && /tmp/fontenv/bin/pip install fonttools brotli && /tmp/fontenv/bin/python scripts/prepare_fonts.py"""
+"""Subset locally installed OFL fonts. Install fonttools and brotli, then run this script.
+Override ISLAND_FONT_DIR to use another local font directory. Builds use the committed WOFF2 files.
+"""
 from pathlib import Path
-import subprocess,urllib.parse,re
+from fontTools import subset
+from fontTools.ttLib import TTFont
+import os,json
 root=Path(__file__).resolve().parents[1]
-texts=[p for p in (root/'src').rglob('*') if p.suffix in ['.ts','.tsx','.json']]+[root/'assets-manifest.json',root/'index.html']
-cjk=''.join(sorted(set(c for p in texts for c in p.read_text() if '\u3400'<=c<='\u9fff')))
-ascii_=''.join(chr(c) for c in range(32,127))
-chars=cjk+ascii_+'·…「」，。：；！？、（）—'
-agent='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36'
-dest=root/'public/fonts';dest.mkdir(exist_ok=True,parents=True)
-def fetch(family,text,name):
- url='https://fonts.googleapis.com/css2?'+urllib.parse.urlencode({'family':family,'display':'swap','text':text})
- css=subprocess.run(['curl','-fsSL','--max-time','45','-H','User-Agent: '+agent,url],capture_output=True,text=True,check=True).stdout
- urls=re.findall(r'url\(([^)]+)\)',css)
- if not urls:raise RuntimeError(f'Font URL missing for {family}')
- subprocess.run(['curl','-fsSL','--max-time','45',urls[0],'-o',str(dest/name)],check=True)
- data=(dest/name).read_bytes()
- if data[:4]!=b'wOF2':raise RuntimeError(f'{family} did not return WOFF2')
- print(f'{name}: {len(text)} characters; {len(data)} bytes; valid WOFF2.')
-fetch('Noto Serif SC:wght@500',chars,'island-serif.woff2')
-journal=''.join(sorted(set(c for p in [root/'src/ui/Journal.tsx',root/'src/content.ts'] for c in p.read_text() if '\u3400'<=c<='\u9fff')))+ascii_+'·…「」，。：；！？、（）—“”'
-fetch('Long Cang',journal,'island-hand.woff2')
-# LXGW WenKai: pinned release, subset here (Google Fonts only carries its Traditional Chinese edition).
-ttf=root/'art-source/fonts/LXGWWenKai-Regular.ttf'
-if not ttf.exists():
- ttf.parent.mkdir(parents=True,exist_ok=True)
- subprocess.run(['curl','-fsSL','--max-time','300','-o',str(ttf),'https://github.com/lxgw/LxgwWenKai/releases/download/v1.522/LXGWWenKai-Regular.ttf'],check=True)
-try:
- from fontTools import subset
- options=subset.Options();options.flavor='woff2';options.layout_features=['*'];options.name_IDs=['*']
- font=subset.load_font(str(ttf),options);sub=subset.Subsetter(options);sub.populate(text=journal);sub.subset(font)
- subset.save_font(font,str(dest/'island-hand-body.woff2'),options)
- print(f"island-hand-body.woff2: {len(journal)} characters; {(dest/'island-hand-body.woff2').stat().st_size} bytes; subset locally.")
-except ImportError:print('island-hand-body.woff2 skipped: fontTools is not installed (see the note at the top of this script).')
-fetch('Caveat:wght@500',ascii_+'·—',  'island-hand-latin.woff2')
+fonts=Path(os.environ.get('ISLAND_FONT_DIR',Path.home()/'Library/Fonts'))
+text=''.join(p.read_text() for p in (root/'src').rglob('*') if p.suffix in ('.ts','.tsx','.json'))+(root/'assets-manifest.json').read_text()
+chars=''.join(sorted(set(c for c in text if '\u3400'<=c<='\u9fff')))+''.join(chr(i) for i in range(32,127))+'·…「」，。：；！？、（）—“”‘’×↗℃'
+# Use the complete OFL from the installed Compagnon font; both typefaces are licensed under OFL 1.1.
+license_font=TTFont(fonts/'Compagnon-Roman.otf');ofl=license_font['name'].getDebugName(13)
+licenses=[];dest=root/'public/fonts';dest.mkdir(exist_ok=True)
+for source,name,label in [('GenWanMinTW-Regular.ttf','island-song','Island Song'),('Compagnon-Roman.otf','island-latin','Island Latin')]:
+ options=subset.Options();options.flavor='woff2';options.layout_features=['*'];options.name_IDs=['*'];options.name_legacy=True
+ font=subset.load_font(str(fonts/source),options)
+ licenses.append({'file':name+'.woff2','originalFamily':font['name'].getDebugName(1),'copyright':font['name'].getDebugName(0),'license':'SIL Open Font License 1.1','licenseText':ofl})
+ used=chars if name=='island-song' else ''.join(chr(i) for i in range(32,256))+'…—–’‘“”'
+ missing=[c for c in used if '\u3400'<=c<='\u9fff' and ord(c) not in font.getBestCmap()]
+ if missing:print('Fallback characters:', ''.join(missing))
+ sub=subset.Subsetter(options);sub.populate(text=used);sub.subset(font)
+ # Distinguish this modified subset from the fonts' reserved names.
+ for rec in font['name'].names:
+  if rec.nameID in (1,3,4,6,16,17):
+   value='Regular' if rec.nameID==17 else label.replace(' ','') if rec.nameID==6 else label
+   rec.string=value.encode(rec.getEncoding(),errors='replace')
+ subset.save_font(font,str(dest/(name+'.woff2')),options)
+ print(name,len(used),(dest/(name+'.woff2')).stat().st_size)
+(dest/'font-licenses.json').write_text(json.dumps(licenses,ensure_ascii=False,indent=2)+'\n')
+for old in ['island-serif.woff2','island-hand.woff2','island-hand-body.woff2','island-hand-latin.woff2']:(dest/old).unlink(missing_ok=True)

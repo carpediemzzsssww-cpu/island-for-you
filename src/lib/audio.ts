@@ -3,9 +3,7 @@ import type {TrackId} from '../content';
 let context:AudioContext|null=null,master:GainNode|null=null,sea:GainNode|null=null,musicGain:GainNode|null=null,nature:GainNode|null=null;
 // One shared <audio> element for every song: iOS unlocks it once on the 上岛 tap, then it can switch tracks on its own.
 // Volume goes through Web Audio gain because iOS ignores HTMLMediaElement.volume.
-let player:HTMLAudioElement|null=null,current:TrackId|null=null,switching:ReturnType<typeof setTimeout>|null=null;
-const positions:Partial<Record<TrackId,number>>={};const finished=new Set<TrackId>();
-let arrivalArmed=false,endingArmed=false;
+let player:HTMLAudioElement|null=null,current:TrackId|null=null;
 // The page shows a short "now playing" line whenever a new song begins.
 export const trackBus=new EventTarget();
 const announce=(id:TrackId)=>trackBus.dispatchEvent(new CustomEvent('track',{detail:tracks[id]}));
@@ -21,39 +19,21 @@ function ambience(){
   next();},scene.night?1500+Math.random()*1400:3500+Math.random()*5500);
  next();
 }
-function cue():{id:TrackId|null;level:number}{
- const s=scene;
- if(s.muted||s.hidden)return {id:null,level:0};
- if(s.radio)return {id:records[s.record%records.length],level:s.place==='home'?1:.25};
- if(!s.started||s.place==='sunset')return {id:null,level:0};
- // The birthday table has its own music: the synthesized Happy Birthday below.
- if(s.place==='celebration')return {id:null,level:0};
- if(endingArmed&&!finished.has('ending'))return {id:'ending',level:1};
- if(s.place==='sunrise'&&s.sunriseStep>=1&&!finished.has('sunrise'))return {id:'sunrise',level:.9};
- if(s.place==='diner')return {id:'diner',level:.55};
- if(arrivalArmed&&!finished.has('arrival'))return {id:'arrival',level:.75};
- return {id:null,level:0};
-}
 function apply(){
  if(!context||!master||!player||!musicGain)return;
- const now=context.currentTime;const {id,level}=cue();
+ const now=context.currentTime,id=records[scene.record%records.length];
  const birthday=scene.started&&scene.place==='celebration'&&scene.party>=1;
  master.gain.setTargetAtTime(scene.muted||scene.hidden?0:.5,now,.4);
- sea?.gain.setTargetAtTime((scene.place==='sunset'?.5:scene.place==='home'?.12:.26)*(id||birthday?.6:1),now,1);
- nature?.gain.setTargetAtTime(id||birthday?.45:1,now,1);
+ sea?.gain.setTargetAtTime((scene.place==='sunset'?.5:scene.place==='home'?.12:.26)*(scene.radio||birthday?.6:1),now,1);
+ nature?.gain.setTargetAtTime(scene.radio||birthday?.45:1,now,1);
  playBirthday(birthday?(scene.party===5?'full':'box'):null);
- if(id===current){if(id){musicGain.gain.setTargetAtTime(level*tracks[id].volume,now,.8);if(player.paused)void player.play().catch(()=>{});}return;}
- if(current)positions[current]=player.currentTime;
- musicGain.gain.setTargetAtTime(0,now,.3);
- const previous=current;current=id;
- if(switching)clearTimeout(switching);
- switching=setTimeout(()=>{switching=null;if(!player||!context||!musicGain||current!==id)return;
-  if(!id){player.pause();return;}
-  const t=tracks[id];const at=positions[id]??t.start??0;
-  if(!player.src.endsWith(t.src))player.src=t.src;
-  const go=()=>{try{player!.currentTime=at;}catch{/* seek after metadata */}void player!.play().catch(()=>{});musicGain!.gain.setTargetAtTime(level*t.volume,context!.currentTime,1);announce(id);};
-  if(player.readyState>=1)go();else player.addEventListener('loadedmetadata',go,{once:true});
- },previous?1000:30);
+ // The playlist belongs to the whole island. Travel changes neither source nor position.
+ const changed=current!==id;
+ if(changed){current=id;player.src=tracks[id].src;announce(id);}
+ // The birthday melody gently sits over the current song; it never selects another record.
+ musicGain.gain.setTargetAtTime((birthday?.07:.75)*tracks[id].volume,now,.8);
+ if(!scene.started||!scene.radio||scene.muted||scene.hidden){player.pause();return;}
+ if(changed||player.paused)void player.play().catch(()=>{});
 }
 export function beginAudio(){
  try{
@@ -66,37 +46,23 @@ export function beginAudio(){
    nature=context.createGain();nature.connect(master);musicGain=context.createGain();musicGain.gain.value=0;musicGain.connect(master);
    player=new Audio();player.preload='auto';player.setAttribute('playsinline','');
    context.createMediaElementSource(player).connect(musicGain);
-   player.addEventListener('ended',()=>{if(!current||!player)return;
-    // The diner radio and the record player loop; story songs play once.
-    if(scene.radio||current==='diner'){player.currentTime=0;void player.play().catch(()=>{});return;}
-    finished.add(current);positions[current]=0;current=null;apply();});
+   player.addEventListener('ended',()=>{if(scene.started&&scene.radio)trackBus.dispatchEvent(new Event('ended'));});
    ambience();setTimeout(hall,3000);
   }
   void context.resume();
-  // Arriving greets her with the first song; start it inside the tap so the element counts as user-activated.
-  finished.delete('arrival');delete positions.arrival;arrivalArmed=true;
-  if(player&&musicGain&&!current&&!scene.radio){const t=tracks.arrival;current='arrival';player.src=t.src;try{player.currentTime=t.start??0;}catch{/* applied on load */}
-   player.addEventListener('loadedmetadata',()=>{if(current==='arrival'&&player&&player.currentTime<1)player.currentTime=t.start??0;},{once:true});
-   void player.play().catch(()=>{});musicGain.gain.setValueAtTime(0,context.currentTime);musicGain.gain.setTargetAtTime(.75*t.volume,context.currentTime,1.4);setTimeout(()=>announce('arrival'),2500);}
+  // Unlock both audio systems in the entry gesture, including on iOS.
+  scene={...scene,started:true,radio:true};apply();
  }catch{/* Silent devices retain the complete interaction. */}
 }
 export function updateAudio(next:Partial<Scene>){scene={...scene,...next};apply();}
 /** For diagnostics: which song is on and whether it is actually playing. */
 export function musicState(){return {track:current,playing:!!player&&!player.paused,time:player?Math.round(player.currentTime):0,birthday:tune?.mode??null};}
-/** After the candles, the ending song walks her home to the letter. */
-export function startEndingMusic(){finished.delete('ending');delete positions.ending;endingArmed=true;apply();}
 
 // ---- Happy Birthday --------------------------------------------------------------------------------------------
-// "Happy Birthday to You" is a public-domain melody; it is played here by a small synthesized music box (no recording).
-// While the lamps come on, the cake arrives and she makes a wish, the box plays it slowly and softly, over and over.
-// When the candles are blown out it plays once more, fuller (bells, a warm pad and a bass), with the fireworks, then
-// goes back to the quiet box. Leaving the table lets it fade.
-// [midi note, start beat, length in beats]; 3/4 with a two-note pickup, and a held note on "dear ...".
-const MELODY:[number,number,number][]=[[67,0,.75],[67,.75,.25],[69,1,1],[67,2,1],[72,3,1],[71,4,2],[67,6,.75],[67,6.75,.25],[69,7,1],[67,8,1],[74,9,1],[72,10,2],
- [67,12,.75],[67,12.75,.25],[79,13,1],[76,14,1],[72,15,1],[71,16,1],[69,17,2],[77,19,.75],[77,19.75,.25],[76,20,1],[72,21,1],[74,22,1],[72,23,3]];
-// [start beat, bass, upper chord tones, length]
-const CHORDS:[number,number,number[],number][]=[[1,48,[64,67],3],[4,43,[59,65],3],[7,43,[59,65],3],[10,48,[55,64],3],[13,48,[58,64],3],[16,41,[57,60],4],[20,43,[60,64],2],[22,43,[59,65],1],[23,36,[55,64],3]];
-const SONG_BEATS=26.5;
+// A small original rising chime for any kind of celebration; the playlist continues underneath.
+const MELODY:[number,number,number][]=[[72,0,1],[76,1,1],[79,2,2],[76,4,1],[74,5,1],[72,6,2],[69,8,1],[72,9,1],[76,10,2],[74,12,1],[79,13,1],[84,14,2]];
+const CHORDS:[number,number,number[],number][]=[[0,48,[64,67],4],[4,43,[62,67],4],[8,45,[60,64],4],[12,48,[64,67],4]];
+const SONG_BEATS=16;
 type Note={at:number;play:()=>void};
 let tune:{mode:'box'|'full';out:GainNode;timer:ReturnType<typeof setInterval>|null;queue:Note[];passEnd:number}|null=null;let room:ConvolverNode|null=null;let wanted:'box'|'full'|null=null;
 const hz=(m:number)=>440*Math.pow(2,(m-69)/12);
@@ -142,7 +108,7 @@ function playBirthday(mode:'box'|'full'|null){
   while(current.queue.length&&current.queue[0].at<horizon){const n=current.queue.shift()!;if(n.at>now-.05)n.play();}
   // After the full version, the quiet box carries on until she leaves the table.
   if(!current.queue.length&&now>current.passEnd-.8){const wasFull=current.mode==='full';if(wasFull)out.gain.setTargetAtTime(.75,now,1);queuePass('box',Math.max(current.passEnd+(wasFull?1.6:1.2),now+.3));}},150);}
-export function resetMusic(){arrivalArmed=false;endingArmed=false;playBirthday(null);finished.clear();for(const k of Object.keys(positions))delete positions[k as TrackId];apply();}
+export function resetMusic(){player?.pause();current=null;scene={...scene,started:false,radio:true,record:0,party:0,place:null};playBirthday(null);}
 export const chime=()=>{tone(783.99,0,.7,.04);tone(1046.5,.12,1,.03);};
 export const kitchen=()=>{tone(220,0,.08,.08,'triangle');tone(180,.2,.08,.06,'triangle');tone(880,1.2,.9,.06);};
 export const paperSound=()=>tone(1900,0,.05,.015,'triangle');
