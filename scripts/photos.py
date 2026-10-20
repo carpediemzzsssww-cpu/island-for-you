@@ -6,9 +6,9 @@
 
 For `import`, sort the pictures into one folder per category (any you leave out are simply not used):
 
-  folder/portrait/   photos of her: the desk, the birthday table, the photo wall (at least two)
-  folder/sunset/     skies: the sunset / sunrise postcards on the beach (at least one)
-  folder/together/   folder/food/   folder/flowers/   folder/journal/   folder/street/   folder/daily/
+  folder/sunset/     skies: the desk, table and beach postcards (at least one)
+  folder/food/       folder/flowers/   folder/journal/   folder/street/   folder/daily/
+  folder/portrait/   folder/together/  optional categories for your own edition
   folder/video.mp4   optional: a short video at the end of the gallery
 
 Files in each folder are used in name order. Pictures are resized for the web (1440 px, and 320 px thumbnails) and
@@ -67,14 +67,13 @@ def import_folder(source, artwork=False):
     if not source.is_dir(): sys.exit(f'Not a folder: {source}')
     # Validate the input before replacing the current gallery.
     extensions = {'.jpg', '.jpeg', '.png', '.webp', '.heic'}
-    for required in ('portrait', 'sunset'):
+    for required in ('sunset',):
         if not any(p.suffix.lower() in extensions for p in (source / required).glob('*')):
             sys.exit(f'Add at least one picture to {required}/.')
     fresh_dest(); photos = []
     for category in ORDER:
         files = sorted(p for p in (source / category).glob('*') if p.suffix.lower() in {'.jpg', '.jpeg', '.png', '.webp', '.heic'}) if (source / category).is_dir() else []
         for n, path in enumerate(files, 1): photos.append(save(load(path), f'{category}-{n:02d}'))
-    if not any(p['category'] == 'portrait' for p in photos): sys.exit('Add at least one picture to portrait/.')
     if not any(p['category'] == 'sunset' for p in photos): sys.exit('Add at least one picture to sunset/.')
     video = None
     clip = None if artwork else next((p for p in source.glob('*') if p.suffix.lower() in {'.mp4', '.mov', '.m4v'}), None)

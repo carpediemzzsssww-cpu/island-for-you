@@ -1,103 +1,124 @@
 # 小岛一直在这里 · An Island for You
 
-<img src="docs/preview.webp" width="720" alt="午后的小岛：灯塔、一排彩色的老房子、椰子树，四周是浅浅的海">
+<img src="docs/preview.webp" width="720" alt="午后的小岛：灯塔、彩色房子、椰子树，四周是浅浅的海">
 
 > 小岛一直在。想来的时候，就回来。
 
-**[在线体验](https://island-for-you.vercel.app)** · [做一座给朋友的岛](#做一座给朋友的岛) · [English](#english)
+一座可以探索、拍照，也可以庆祝任何小事的 3D 小岛。你可以把它改成自己的小世界，或者送给一个人。
 
-## 它是什么
+**[在线体验](https://island-for-you.vercel.app)** · [本地运行](#本地运行) · **[二创教程](docs/REMIX.md)** · [部署](docs/REMIX.md#部署自己的岛) · [English](#english)
 
-一座可以自己逛的 3D 小岛。点一栋房子，镜头就走过去；房子里的东西可以碰：照片墙、唱片机、床边的手机，还有一本手账。
+## 岛上有什么
 
-岛上有九个地方，可以回家看看、包一束花、吃点好吃的、收藏一次日落、等一次天亮。想庆祝的时候，随时去岛心的长桌，写下想庆祝的事。灯一盏一盏亮起来，蛋糕端上来，点蜡烛、许愿、吹灭。生日、毕业、重逢，或只是今天过得还不错，都可以。
+九个地方，没有必须完成的顺序。回家翻照片墙和手账，去花店包花、食堂点菜，在海边看日落，沿山路等天亮；也可以进图书馆，等雨停后回到全岛看彩虹。
 
-它原本是我送给一位朋友的生日礼物。这个仓库是脱敏后的公开版：照片换成了不含人物的风景与静物涂鸦，私人信件和专属称呼隐去了，保留了原版的五首歌。原版的细节和小机关大多留着。
+想庆祝的时候，去岛心的长桌，写下想庆祝的事。点蜡烛、许愿、吹灭，再把这一刻拍下来。生日、毕业、重逢，或只是今天过得还不错，都可以。
 
-图书馆里还留了一页《绿光》：注明凡尔纳小说与侯麦同名电影的出处。观景时只留一个小入口，想读的时候再翻开。
+它原本是我送给朋友的生日礼物。这里是可以独立运行的公开版：保留场景和小机关，用七张无人物风景与静物画替换照片，移除了私人信件和专属称呼。
 
-## 怎么玩
-
-| 你做什么 | 发生什么 |
+| 操作 | 怎么玩 |
 | --- | --- |
-| 拖动、滚轮、双指 | 转着看、凑近看。没有视角按钮，镜头全靠手 |
-| 点一栋房子 | 走进那个地方，能碰的东西会轻轻闪一下 |
-| 打开手账 | 五件小事的清单、手绘地图、你拍的照片，还有一页按时间记下的日记 |
-| 在海边坐下，走上山顶，在白房子旁边等雨停 | 小太阳、海浪和雨云陪着等。绿光、第一缕光、彩虹，都能收进手账 |
-| 拿起相机 | 取景框的四条边都能拉，拉成什么形状，照片就是什么形状 |
-| 随手点水面、树、花丛和沙滩 | 每次冒出来的东西都不一样 |
+| 拖动、滚轮或双指 | 转动和缩放小岛 |
+| 点击建筑或手账地图 | 进入一个地点；点「退出场景」回到全岛 |
+| 点击场景里的物件 | 包花、点菜、看照片，或发现一个小反应 |
+| 拿起相机 | 调整取景框，拍下照片，在手账里查看并保存 |
+| 去岛心长桌 | 随时开始一次庆祝，无需集齐回忆 |
 
-没有积分，也不用按顺序走。可以进图书馆，透过洞口看海。雨停后能回到全岛看彩虹；拍下的照片都收进手账，可以保存到本地。庆祝过后，小岛还开着，时间可以自己调。
+## 本地运行
 
-## 做法
+准备 **Git、Node.js 22.12+ 和 npm**。常规运行不需要后端、API Key、Python 或 Blender；模型、字体和示例图片已经在仓库中。
 
-- **点灯时不再重编译全场材质。** 最早每盏路灯是一个点光源，灯的数量一变，全场材质都要重新编译。现在灯的数量从头到尾固定，灯晕用发光贴图画；晚上才出现的蛋糕、彩旗和烟花，开场就建好、藏起来、提前编译。
-- **镜头靠手。** 每个地方都有自己的边界和阻尼（camera-controls），拖动、滚轮、双指走同一套平滑。日出那段山路是一条 Catmull-Rom 曲线：镜头走 7 秒，视线看向前方一段路，所以不晃。
-- **岛上所有中文都在一份清单里。** `scripts/copy-deck.mjs` 读 TypeScript 语法树，把 页面里的中文（连读屏文字也算）按逛岛的顺序导出成一份 Markdown，改完一条命令写回代码。原版的文案，我就是在这份清单里改的。
-- **字体只带用得到的字。** 源雲明體与 Compagnon 按页面里实际出现的字做子集。
-- **房间里有声音。** 五首歌在整座岛上顺序播放，换场景不会打断；房间里的唱片机可以暂停或换歌。庆祝时会响起浏览器合成的小段钟琴。原来的公有领域音乐盒生成脚本也保留，方便自行换曲。
+```sh
+git clone https://github.com/carpediemzzsssww-cpu/island-for-you.git
+cd island-for-you
+npm ci
+npm run dev
+```
 
-## 做一座给朋友的岛
+打开终端显示的地址，通常是 `http://localhost:5173`。如果你要保存二创到自己的 GitHub，先点仓库右上角 **Fork**，再克隆自己名下的仓库。
 
-真正让它特别的，是每样东西为什么出现在这里。动手之前，先挑出最像你们的 5 到 12 个瞬间。
+```sh
+npm test          # 状态逻辑检查
+npm run build     # 生成 dist/
+npm run preview   # 本地查看构建结果
+```
 
-1. **名字和文字**：`src/content.ts` 里的 `site` 决定岛怎么称呼来访的人（默认「岛主」）和左上角的字。公开版不带信件；庆祝的主题在岛心填写，只保存在本机。
-2. **照片**：按类别放进一个文件夹，再运行
-   ```sh
-   npm run photos -- import ~/Pictures/island
-   ```
-   类别是子文件夹的名字：`sunset`（日落和日出，至少一张）、`together`、`food`、`flowers`、`journal`、`street`、`daily`；根目录可以放一段 `video.mp4`。照片会缩成网页尺寸，并去掉 EXIF，拍摄时间和定位不会上网。导入生成的画使用 `npm run photos -- artworks <folder>`；想换回简单占位图使用 `npm run photos -- placeholders`。当前 7 张不含人物的画的生成提示词见 [docs/ARTWORK.md](docs/ARTWORK.md)。
-3. **所有文案**：`node scripts/copy-deck.mjs export` 生成 `文案清单.md`，改完运行 `node scripts/copy-deck.mjs apply`。用到新字的话，重新做字体子集：`python3 scripts/prepare_fonts.py`（需要 fontTools，脚本开头有说明）。
-4. **招牌**：房子上的英文招牌在 `src/world/anchors.json`。
-5. **音乐**：`src/content.ts` 的 `tracks` 指向 `public/music`。只放你有权分发的音乐。
+这是一个静态网页项目。探索进度和拍立得保存在当前浏览器中，换设备不会自动同步。部署出去的图片与音乐是公开资源；详细的浏览器检查见 [QA 文档](docs/QA.md)。
 
-照片里出现的人、地点和聊天内容，公开之前先问过 TA。
+## 从哪里开始二创
+
+第一次可以只做三件事：改左上角的名字，换一张天空，写一句自己的欢迎语。它们都不需要重新建模。
+
+| 想改什么 | 从哪里改 | 教程 |
+| --- | --- | --- |
+| 小岛标识、称呼、场景名 | `src/content.ts` 的 `site`、`places` | [名字和文案](docs/REMIX.md#名字和文案) |
+| 欢迎语、按钮、手账文字 | 导出 `文案清单.md`，编辑后写回源码 | [不逐个翻组件也能改文字](docs/REMIX.md#名字和文案) |
+| 照片墙、桌面、海边明信片 | `public/photos/` 与 `assets-manifest.json` | [替换图片](docs/REMIX.md#替换图片) |
+| 背景音乐和播放顺序 | `src/content.ts` 的 `tracks`、`records` | [替换音乐](docs/REMIX.md#替换音乐) |
+| 页面颜色、字体、手机按钮 | `src/style.css`、`src/ui/hud.css` | [颜色和字体](docs/REMIX.md#颜色和字体) |
+| 日落、雨天、庆祝的时长 | `src/experience.ts` 的 `TIMING` | [场景和交互](docs/REMIX.md#场景和交互) |
+| 店铺招牌、建筑或花型 | `src/world/anchors.json`、模型脚本、`src/bouquet/` | [场景和交互](docs/REMIX.md#场景和交互) |
+
+**[跟着教程做一座自己的岛 →](docs/REMIX.md)**
+
+教程包含可复制的修改示例、图片目录与导入命令、字体依赖、音乐替换、Vercel 部署和常见问题。项目没有可视化搭建后台；改内容主要编辑配置和文字，新增玩法需要修改 React / Three.js 代码。
+
+## 项目结构
+
+技术栈：React 19、TypeScript、Vite 7、Three.js、React Three Fiber、Drei、Zustand。
+
+```text
+src/
+  content.ts        名字、地点、花材、菜单、曲目
+  experience.ts     场景时长与绿光出处
+  store.ts          运行状态与本地保存
+  ui/               手账、弹窗、相机、场景操作
+  world/            3D 场景、镜头、天气、物件与庆祝
+  bouquet/          包花工作台和花型
+  minitool/         小工具的声音、存储、模型与容器适配
+public/             网页直接使用的模型、图片、字体、音乐
+assets-manifest.json 图片清单
+scripts/            文案导出、素材处理、模型生成和检查
+```
+
+3D 部分尽量把静态物件合并绘制；灯光数量保持固定，避免点灯时全场材质重新编译。手机上会按运行情况降低渲染开销；`?lite` 可主动关闭后期效果。修改模型后，仍需要在目标设备上检查画面与流畅度。
 
 ## 小红书小工具
 
-公开版另有离线构建，顶部天空为容器导航留出空间。使用简化模型、原创合成音乐和原生相册保存；字体与七张小画都随包提供。
+同一套公开内容另有离线构建，使用简化模型、合成音乐和容器相册接口，并为顶部导航与底部手势留出空间。
 
 ```sh
 npm run build:minitool
 ```
 
-构建需要本机的官方 `minitool-zip-builder` 1.8.0；可通过 `MINITOOL_SKILL_DIR` 指定目录。输出在 `release/`，不会覆盖网页构建。浏览器近似测试与平台真机验证的边界见 [小工具说明](docs/MINITOOL.md)。
+这一步额外需要官方 `minitool-zip-builder` 1.8.0，**普通网页不需要安装它**。获取方法、路径配置与产物说明见 [二创教程](docs/REMIX.md#制作小红书小工具) 和 [小工具说明](docs/MINITOOL.md)。ZIP 输出到 `release/`；平台模拟器及 Android / iOS 真机验证仍需单独完成。
 
-## 本地运行
+## 一起改进
 
-需要 Node.js 22.12+。
+欢迎提 [Issue](https://github.com/carpediemzzsssww-cpu/island-for-you/issues) 或 [Pull Request](https://github.com/carpediemzzsssww-cpu/island-for-you/pulls)。问题反馈请附：设备与浏览器、进入了哪个场景、操作步骤、预期结果和截图。不要附私人照片、信件或聊天内容。
 
-```sh
-npm ci
-npm run dev      # http://localhost:5173
-npm run build
-npm test
-```
+改文案、改善手机布局、补无障碍说明、修复模型缺件都欢迎。提交前运行 `npm test` 和 `npm run build`；界面改动附上桌面、手机竖屏和横屏截图，玩法改动说明如何复现。大范围改建场景，可以先在 Issue 里聊聊。
 
-地址后面加 `?lite` 会关掉后期效果（帧率低于约 32 fps 时，页面也会自己切过去）。浏览器自动检查见 [docs/QA.md](docs/QA.md)。
+## 素材与许可
 
-## 素材与版权
+| 内容 | 二创时注意什么 |
+| --- | --- |
+| 代码与模型生成脚本 | [MIT](LICENSE)，使用、修改和分发时保留版权与许可声明 |
+| 字体 | 源雲明體与 Compagnon，按 [OFL 及字体声明](public/fonts/LICENSES.md) 分发 |
+| 示例图片 | 七张 AI 生成的风景与静物画，来源说明见 [ARTWORK](docs/ARTWORK.md)；没有私人参考原图 |
+| 网页歌曲录音 | 演示版保留五首歌曲，**不属于 MIT 许可范围**；发布自己的版本前替换成可分发的音频，方法见 [音乐教程](docs/REMIX.md#替换音乐) |
+| Draco 解码器 | `public/draco/`，Google，Apache-2.0 |
 
-- 字体：源雲明體（GenWanMin）与 Compagnon，都是 SIL Open Font License 1.1，详见 [public/fonts/LICENSES.md](public/fonts/LICENSES.md)
-- 音乐：Imagine Dragons 的 Nice to Meet You、Bad Liar；Taylor Swift 的 Call It What You Want、Down Bad、Babylon。这些录音不属于本项目的 MIT 许可证；庆祝钟琴由浏览器合成
-- 图片：imagegen 生成的 7 张无人物风景与静物涂鸦；公开素材不包含参考原图、人物姓名、原文件名或 EXIF
-- 3D 模型：`scripts/build_island.py` 在 Blender 4.5 里生成，没有下载任何模型
-- Draco 解码器（`public/draco`）：Google，Apache-2.0
-
-## 边界
-
-这个版本包含可运行的源码、生成的涂鸦和五首歌曲。原版里的真实照片、录像、私人信、名字和地名不包含在公开素材与 git 历史里。
+照片、录像和音乐即使放在静态资源目录里，部署后也能被访问。请只发布你愿意公开、且可以使用的素材。公开版没有私人信件，也没有开启私人版本的隐藏开关。
 
 ## English
 
-An explorable 3D island. Tap a house to visit, wrap a bouquet, sit by the sea, or wait for the rain to stop inside the library. You can return to the whole island to see the rainbow and save your own photos.
+An explorable 3D island for quiet visits and any celebration. Wrap a bouquet, eat something nice, watch the sunset, visit the library, and save a photo of the moment. It began as a gift for a friend; this standalone public edition removes personal letters and uses seven person-free drawings.
 
-The square is always open for a celebration. Write what you are celebrating, light the candles, make a wish, and watch the fireworks. There is no required order or checklist to finish first.
+**[Try the island](https://island-for-you.vercel.app)** · **[Remix guide (Chinese)](docs/REMIX.md)**
 
-It began as a birthday gift for a friend. This public edition uses seven person-free landscape and still-life drawings, removes the personal letter and identifying details, and retains the five original songs. Reference photographs and their metadata are not included. Edit `site` and the copy in `src/content.ts` to make it yours.
+To run it, clone this repository (or your own fork), install Node.js 22.12+, then run `npm ci` and `npm run dev`. No backend, API key or Blender installation is needed for the included scene. Run `npm test` and `npm run build` before publishing; the static output is `dist/`.
 
-**[Live demo](https://island-for-you.vercel.app)**
+Start with `src/content.ts` for names, place descriptions and music; use `assets-manifest.json` and `public/photos/` for the gallery. `src/experience.ts` controls scene timing. Progress stays in the current browser. For Vercel, import your fork as a Vite project, with `npm run build` and `dist/` as the build command and output directory.
 
-## License
-
-代码使用 MIT 许可证（见 [LICENSE](LICENSE)），字体按各自的 OFL 许可证分发。歌曲录音不适用代码许可证。
+Code is MIT licensed. Font licenses are included separately. The demo song recordings are **not** covered by MIT: replace them before distributing your own edition. Issues and pull requests are welcome.
